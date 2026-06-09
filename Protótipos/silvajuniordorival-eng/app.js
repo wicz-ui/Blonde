@@ -46,8 +46,43 @@ export default function App() {
                     const listaTokens = JSON.parse(tokensSalvos);
 
                     if (tokensSalvos !== null) {
-                        const
-                    }
+                        const listaTokens = JSON.parse(tokensSalvos);
+
+                        if (listaTokens.length > 0 ) {
+                            disponível da lista offline 
+                            const proximo = listaTokens.shift();
+                            setTokenAtual (proximo);
+
+                            // Atualiza a lista interna removendo o token que acabou de ser exibido
+                            await
+                            AsyncStorage.setItem('@lote_tokens_catraca', JSON.stringify(listaTokens));
+                        } else {Alert.alert('Aviso','Seus tokens offline acabaram! Conecte-se à internet para recerregar.');
+                            setTokenAtual('');
+                        }
+                        else {Alert.alert('Erro', 'Sem conexão e nenhum token offline encontrado.');
+                        }
+                        catch (e) {console.error('Erro ao ler armazenamento local', e);
+                        }
+                    };
+                    useEffect(() => {sincronizarTokensParaUsoOffline();
+                    }; []);
+                    return (
+                    <View style={Styles.container}>
+                        <Text style={[Styles.badge,
+                            statusRede.includes('Offline') ?
+                            styles.badgeOffline :
+                            styles.badgeOnline ]}>
+                                <Text style={styles.badgeTexto}
+                                >{statusRede}</Text>
+                                </View>
+
+                                <View style={styles.boxQr}>
+                                    {carregando ? (<ActivityIndicator size="large"
+                                    color="#3182ce" />
+                                ) : tokenAtual ? (nativamente a partir da string encriptada (JWT)
+                            <QRCode value={tokenAtual}
+                        size={220} color="black")}
+                        )
                 }
             }
         }
