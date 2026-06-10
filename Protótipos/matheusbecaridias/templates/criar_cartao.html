@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Criar cartão | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Passageiro</p>
+    <h1>Criar cartão</h1>
+    <p class="lead">Cadastre apenas dados fictícios para a demonstração.</p>
+  </section>
+
+  <section class="split-layout">
+    <form class="panel form-panel" method="post" action="{{ url_acesso('criar_cartao') }}">
+      <input name="token" type="hidden" value="{{ token_acesso }}">
+      {% if erro %}
+        <div class="alert alert-danger">{{ erro }}</div>
+      {% endif %}
+
+      <label for="nome_passageiro">Nome fictício do passageiro</label>
+      <input
+        id="nome_passageiro"
+        name="nome_passageiro"
+        type="text"
+        value="{{ dados_form.nome_passageiro }}"
+        required
+        autocomplete="name"
+      >
+
+      <label for="saldo">Saldo inicial</label>
+      <input
+        id="saldo"
+        name="saldo"
+        type="text"
+        inputmode="decimal"
+        value="{{ dados_form.saldo }}"
+        required
+      >
+
+      <label for="status">Status do cartão</label>
+      <select id="status" name="status">
+        <option value="ativo" {% if dados_form.status == "ativo" %}selected{% endif %}>Ativo</option>
+        <option value="bloqueado" {% if dados_form.status == "bloqueado" %}selected{% endif %}>Bloqueado</option>
+      </select>
+
+      <button class="button button-primary" type="submit">Criar cartão</button>
+    </form>
+
+    {% if cartao_criado %}
+      <article class="panel card-result">
+        <p class="eyebrow">Cartão criado</p>
+        <h2>{{ cartao_criado.codigo_publico }}</h2>
+        <button class="copy-button" type="button" data-copy="{{ cartao_criado.codigo_publico }}">Copiar código público</button>
+        <button class="copy-button" type="button" data-copy="{{ cartao_criado.token_usuario }}">Copiar token privado</button>
+        <a class="button button-secondary" href="{{ url_for('usuario_meu_cartao', token=cartao_criado.token_usuario) }}">Abrir cartão do usuário</a>
+        <dl class="details-list">
+          <div>
+            <dt>Passageiro</dt>
+            <dd>{{ cartao_criado.nome_usuario }}</dd>
+          </div>
+          <div>
+            <dt>Código público</dt>
+            <dd>{{ cartao_criado.codigo_publico }}</dd>
+          </div>
+          <div>
+            <dt>Token privado</dt>
+            <dd><code>{{ cartao_criado.token_usuario }}</code></dd>
+          </div>
+          <div>
+            <dt>Saldo</dt>
+            <dd>{{ cartao_criado.saldo|moeda }}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd><span class="status status-{{ cartao_criado.status }}">{{ cartao_criado.status|status_cartao }}</span></dd>
+          </div>
+          <div>
+            <dt>Criação</dt>
+            <dd>{{ cartao_criado.data_criacao }}</dd>
+          </div>
+        </dl>
+      </article>
+    {% else %}
+      <article class="panel muted-panel">
+        <h2>Código e token separados</h2>
+        <p>O código público é usado na catraca. O token privado abre somente o cartão do dono.</p>
+      </article>
+    {% endif %}
+  </section>
+{% endblock %}

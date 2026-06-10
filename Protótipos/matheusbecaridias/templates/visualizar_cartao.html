@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Consultar cartão | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Passageiro</p>
+    <h1>{% if acesso_usuario %}Meu cartão{% else %}Visualizar cartão{% endif %}</h1>
+  </section>
+
+  <section class="{% if acesso_usuario %}user-card-layout{% else %}split-layout{% endif %}">
+    {% if not acesso_usuario %}
+      <form class="panel form-panel" method="post" action="{{ url_acesso('visualizar_cartao') }}">
+        <input name="token" type="hidden" value="{{ token_acesso }}">
+        <label for="cartao_id">ID do cartão</label>
+        <input
+          id="cartao_id"
+          name="cartao_id"
+          type="text"
+          inputmode="numeric"
+          value="{{ cartao_id }}"
+          required
+        >
+        <button class="button button-primary" type="submit">Buscar cartão</button>
+      </form>
+    {% endif %}
+
+    <article class="panel">
+      {% if cartao %}
+        <p class="eyebrow">Cartão encontrado</p>
+        <h2>ID {{ cartao.id }}</h2>
+        <dl class="details-list">
+          <div>
+            <dt>Passageiro</dt>
+            <dd>{{ cartao.nome_passageiro }}</dd>
+          </div>
+          <div>
+            <dt>Saldo</dt>
+            <dd>{{ cartao.saldo|moeda }}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd><span class="status status-{{ cartao.status }}">{{ cartao.status|status_cartao }}</span></dd>
+          </div>
+          <div>
+            <dt>Criação</dt>
+            <dd>{{ cartao.data_criacao }}</dd>
+          </div>
+        </dl>
+      {% elif erro %}
+        <div class="alert alert-danger">{{ erro }}</div>
+      {% else %}
+        <h2>Consulta por ID</h2>
+        <p>Informe o ID gerado na criação do cartão.</p>
+      {% endif %}
+    </article>
+  </section>
+{% endblock %}

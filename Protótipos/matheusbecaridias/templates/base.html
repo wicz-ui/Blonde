@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Catraca Virtual{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%230f766e'/%3E%3Cpath d='M18 34h20l-7 7 4 4 14-14-14-14-4 4 7 7H18z' fill='white'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=static_version) }}">
+    {% block head_scripts %}{% endblock %}
+    <script defer src="{{ url_for('static', filename='script.js', v=static_version) }}"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      {% if dispositivo and dispositivo.tipo == "admin" %}
+        <a class="brand" href="{{ url_acesso('admin_home') }}">Catraca Virtual</a>
+        <nav class="nav" aria-label="Navegação administrativa">
+          <a href="{{ url_acesso('admin_home') }}">Admin</a>
+          <a href="{{ url_acesso('criar_cartao') }}">Criar cartão</a>
+          <a href="{{ url_acesso('admin_cartoes') }}">Cartões</a>
+          <a href="{{ url_acesso('historico') }}">Histórico</a>
+          <a href="{{ url_acesso('admin_recargas') }}">Recargas</a>
+          <a href="{{ url_acesso('admin_estacoes') }}">Estações</a>
+          <a href="{{ url_acesso('admin_configuracoes') }}">Configurações</a>
+          <a href="{{ url_acesso('dispositivos') }}">Dispositivos</a>
+        </nav>
+      {% elif dispositivo and dispositivo.tipo == "usuario" %}
+        <span class="brand">Catraca Virtual</span>
+        <nav class="nav" aria-label="Navegação do passageiro">
+          <a href="{{ url_acesso('usuario_meu_cartao') }}">Meu cartão</a>
+          <a href="{{ url_acesso('usuario_recarregar_cartao') }}">Recarregar</a>
+          <a href="{{ url_acesso('usuario_planejar_viagem') }}">Planejar</a>
+          <a href="{{ url_acesso('usuario_recargas') }}">Recargas</a>
+          <a href="{{ url_acesso('usuario_minha_viagem') }}">Minha viagem</a>
+        </nav>
+      {% else %}
+        <span class="brand">Catraca Virtual</span>
+        {% if dispositivo %}
+          <span class="device-badge">{{ dispositivo.nome_dispositivo }}</span>
+        {% endif %}
+      {% endif %}
+    </header>
+
+    <main class="page">
+      {% with mensagens = get_flashed_messages() %}
+        {% if mensagens %}
+          {% for mensagem in mensagens %}
+            <div class="alert alert-info">{{ mensagem }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

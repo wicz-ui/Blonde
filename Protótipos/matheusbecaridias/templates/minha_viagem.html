@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Minha viagem | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Passageiro</p>
+    <h1>Minha viagem</h1>
+  </section>
+
+  <section class="user-card-layout">
+    <article class="panel">
+      {% if rota %}
+        <p class="eyebrow">Rota planejada</p>
+        <h2>Código {{ cartao.codigo_publico }}</h2>
+        <dl class="details-list">
+          <div>
+            <dt>Criada em</dt>
+            <dd>{{ rota.criado_em }}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{{ rota.status|capitalize }}</dd>
+          </div>
+        </dl>
+        <ol class="trip-list">
+          {% for trecho in trechos %}
+            <li>{{ trecho.origem_nome }} → {{ trecho.destino_nome }}</li>
+          {% endfor %}
+        </ol>
+        <div class="button-row">
+          <a class="button button-primary" href="{{ url_acesso('usuario_planejar_viagem', editar='atual') }}">Editar rota</a>
+          <form method="post" action="{{ url_acesso('usuario_cancelar_viagem') }}">
+            <input name="token" type="hidden" value="{{ token_acesso }}">
+            <button class="button button-quiet" type="submit">Cancelar rota</button>
+          </form>
+        </div>
+      {% else %}
+        <h2>Nenhuma viagem planejada</h2>
+        <p class="muted-text">Crie uma rota antes da validação na catraca.</p>
+        <a class="button button-primary" href="{{ url_acesso('usuario_planejar_viagem') }}">Planejar viagem</a>
+      {% endif %}
+    </article>
+  </section>
+{% endblock %}

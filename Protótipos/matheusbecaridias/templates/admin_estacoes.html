@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Estações | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Administração</p>
+    <h1>Estações fictícias</h1>
+  </section>
+
+  <section class="split-layout devices-layout">
+    <form class="panel form-panel" method="post" action="{{ url_acesso('admin_estacoes') }}">
+      <input name="token" type="hidden" value="{{ token_acesso }}">
+      <h2>Nova estação</h2>
+      {% if erro %}
+        <div class="alert alert-danger">{{ erro }}</div>
+      {% endif %}
+      <label for="nome">Nome</label>
+      <input id="nome" name="nome" type="text" required>
+      <label for="regiao">Região</label>
+      <input id="regiao" name="regiao" type="text" placeholder="Ex.: Oeste">
+      <button class="button button-primary" type="submit">Cadastrar estação</button>
+    </form>
+
+    <article class="panel muted-panel">
+      <h2>Londrina e região</h2>
+      <p>As estações são fictícias e servem apenas para simular origem e destino.</p>
+    </article>
+  </section>
+
+  <section class="panel table-panel">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Região</th>
+            <th>Status</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for estacao in estacoes %}
+            <tr>
+              <td data-label="Nome">{{ estacao.nome }}</td>
+              <td data-label="Região">{{ estacao.regiao or "-" }}</td>
+              <td data-label="Status">
+                <span class="status {% if estacao.ativa %}status-ativo{% else %}status-bloqueado{% endif %}">
+                  {% if estacao.ativa %}Ativa{% else %}Inativa{% endif %}
+                </span>
+              </td>
+              <td data-label="Ação">
+                <form method="post" action="{{ url_acesso('admin_alternar_estacao', estacao_id=estacao.id) }}">
+                  <input name="token" type="hidden" value="{{ token_acesso }}">
+                  <button class="button button-quiet" type="submit">
+                    {% if estacao.ativa %}Desativar{% else %}Ativar{% endif %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

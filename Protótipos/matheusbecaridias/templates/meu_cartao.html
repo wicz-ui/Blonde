@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Meu cartão | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Passageiro</p>
+    <h1>Meu cartão</h1>
+  </section>
+
+  <section class="user-card-layout">
+    <article class="panel">
+      {% if cartao %}
+        <p class="eyebrow">Cartão vinculado</p>
+        <h2>{{ cartao.nome_usuario }}</h2>
+        <dl class="details-list">
+          <div>
+            <dt>Código público</dt>
+            <dd>{{ cartao.codigo_publico }}</dd>
+          </div>
+          <div>
+            <dt>Saldo</dt>
+            <dd>{{ cartao.saldo|moeda }}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd><span class="status status-{{ cartao.status }}">{{ cartao.status|status_cartao }}</span></dd>
+          </div>
+          <div>
+            <dt>Criação</dt>
+            <dd>{{ cartao.criado_em or cartao.data_criacao }}</dd>
+          </div>
+        </dl>
+        <div class="button-row">
+          <a class="button button-primary" href="{{ url_acesso('usuario_planejar_viagem') }}">Planejar viagem</a>
+          <a class="button button-secondary" href="{{ url_acesso('usuario_recarregar_cartao') }}">Recarregar cartão</a>
+          <a class="button button-secondary" href="{{ url_acesso('usuario_minha_viagem') }}">Minha viagem</a>
+          <a class="button button-secondary" href="{{ url_acesso('usuario_recargas') }}">Histórico de recargas</a>
+          {% if permitir_pdf %}
+            <a class="button button-secondary" href="{{ url_acesso('usuario_cartao_pdf') }}">Baixar cartão em PDF</a>
+          {% endif %}
+          {% if link_rapido %}
+            <button class="button button-secondary" type="button" data-copy="{{ link_rapido }}">Copiar link do meu cartão</button>
+          {% endif %}
+        </div>
+      {% else %}
+        <div class="alert alert-danger">{{ erro }}</div>
+      {% endif %}
+    </article>
+  </section>
+{% endblock %}

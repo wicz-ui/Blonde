@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Catraca | Catraca Virtual{% endblock %}
+
+{% block head_scripts %}
+  <script defer src="{{ url_for('static', filename='html5-qrcode.min.js', v=static_version) }}"></script>
+{% endblock %}
+
+{% block content %}
+  <section class="page-header page-header-centered">
+    <p class="eyebrow">Operador da catraca</p>
+    <h1>Catraca virtual</h1>
+    <p class="lead">
+      Estação atual: <strong>{{ estacao.nome if estacao else "Não configurada" }}</strong>
+      · Passagem: {{ valor_passagem|moeda }}
+    </p>
+  </section>
+
+  <section class="turnstile-layout">
+    <form class="panel form-panel turnstile-form" method="post" action="{{ url_acesso('validar_catraca') }}">
+      <input name="token" type="hidden" value="{{ token_acesso }}">
+      <label for="cartao_id">Digite o código público do cartão</label>
+      <input
+        id="cartao_id"
+        name="cartao_id"
+        type="text"
+        inputmode="numeric"
+        value="{{ cartao_id or '' }}"
+        required
+        autofocus
+      >
+      <div class="button-row">
+        <button class="button button-secondary" type="button" data-scan-qr>Escanear QR Code</button>
+      </div>
+      <div class="qr-scanner" hidden>
+        <div class="qr-reader" id="qr-reader"></div>
+        <p class="muted-text" data-qr-status>Aponte a câmera para o QR Code do cartão.</p>
+        <div class="button-row">
+          <button class="button button-secondary" type="button" data-scan-qr-file>Usar foto do QR Code</button>
+        </div>
+        <button class="button button-quiet" type="button" data-stop-qr>Cancelar leitura</button>
+      </div>
+      <button class="button button-primary button-large" type="submit">Validar entrada</button>
+    </form>
+
+    {% include "resultado.html" %}
+  </section>
+{% endblock %}
