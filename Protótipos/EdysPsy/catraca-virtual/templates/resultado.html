@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+    {% if acao == 'criar' %}
+        <h2>🎉 Cartão Criado com Sucesso!</h2>
+        <div class="card-info" style="border-left-color: #28a745;">
+            <p style="font-size: 20px; color: #28a745; margin-bottom: 10px;"><strong>ID GERADO: {{ cartao['id'] }}</strong></p>
+            <p><strong>Passageiro:</strong> {{ cartao['nome_passageiro'] }}</p>
+            <p><strong>Saldo Inicial:</strong> R$ {{ "%.2f"|format(cartao['saldo']) }}</p>
+            <p><strong>Status:</strong> Ativo</p>
+        </div>
+        <p style="text-align: center; margin-bottom: 15px; color: #777;">Guarde o número do ID para testar na catraca!</p>
+        <a href="/criar-cartao" class="btn">Criar Outro</a>
+    {% else %}
+        <h2>Resultado da Validação</h2>
+        <div class="result-box {{ status }}">
+            <p style="font-size: 18px; font-weight: bold;">{{ motivo }}</p>
+        </div>
+        <a href="/catraca" class="btn" style="background: #e67e22;">Validar Novo Cartão</a>
+    {% endif %}
+    
+    <a href="/" class="menu-btn btn-voltar">Voltar ao início</a>
+{% endblock %}

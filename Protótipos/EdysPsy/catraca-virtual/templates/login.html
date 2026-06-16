@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BusPass - Login</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #eef2f3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .celular-frame {
+            width: 340px;
+            height: 600px;
+            background: white;
+            border: 12px solid #111;
+            border-radius: 32px;
+            padding: 25px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-container h2 {
+            color: #1e3c72;
+            margin: 0;
+            font-size: 28px;
+        }
+
+        .logo-container p {
+            color: #777;
+            margin: 5px 0 0 0;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #1e3c72;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2a5298;
+        }
+
+        .alert {
+            color: #dc3545;
+            text-align: center;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="celular-frame">
+        <div class="logo-container">
+            <h2>BusPass</h2>
+            <p>Seu passe de ônibus digital</p>
+        </div>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        <form method="POST">
+            <input type="email" name="email" placeholder="edson.hara@escola.pr.gov.br" required>
+            <!-- LINHA CORRIGIDA ABAIXO: Fechamento de aspas e adição do caractere '>' no input -->
+            <input type="password" name="senha" placeholder="Sua senha" required>
+            <button type="submit">Entrar no Aplicativo</button>
+        </form>
+    </div>
+</body>
+
+</html>

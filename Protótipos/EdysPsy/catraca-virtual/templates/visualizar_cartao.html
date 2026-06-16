@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Buscar Cartão Virtual</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label for="cartao_id">Digite o ID do Cartão:</label>
+            <input type="number" id="cartao_id" name="cartao_id" required placeholder="Ex: 1001">
+        </div>
+        <button type="submit" class="btn">Buscar Cartão</button>
+    </form>
+
+    {% if buscou %}
+        {% if cartao %}
+            <div class="card-info">
+                <p><strong>ID do Cartão:</strong> {{ cartao['id'] }}</p>
+                <p><strong>Nome:</strong> {{ cartao['nome_passageiro'] }}</p>
+                <p><strong>Saldo:</strong> R$ {{ "%.2f"|format(cartao['saldo']) }}</p>
+                <p><strong>Status:</strong> {{ cartao['status']|capitalize }}</p>
+                <p><strong>Criação:</strong> {{ cartao['data_creation'] or cartao['data_criacao'] }}</p>
+            </div>
+        {% else %}
+            <div class="result-box negado">
+                <p>Erro: Cartão não encontrado!</p>
+            </div>
+        {% endif %}
+    {% endif %}
+
+    <a href="/" class="menu-btn btn-voltar">Voltar ao início</a>
+{% endblock %}

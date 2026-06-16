@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Criar Cartão Virtual</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label for="nome_passageiro">Nome do Passageiro:</label>
+            <input type="text" id="nome_passageiro" name="nome_passageiro" required placeholder="Ex: João da Silva">
+        </div>
+        <div class="form-group">
+            <label for="saldo_inicial">Saldo Inicial (R$):</label>
+            <input type="number" id="saldo_inicial" name="saldo_inicial" step="0.01" min="0" value="20.00" required>
+        </div>
+        <button type="submit" class="btn">Criar Cartão</button>
+    </form>
+    <a href="/" class="menu-btn btn-voltar">Voltar ao início</a>
+{% endblock %}

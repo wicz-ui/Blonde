@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>📊 Histórico de Passagens</h2>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID Cartão</th>
+                    <th>Nome</th>
+                    <th>Data/Hora</th>
+                    <th>Resultado</th>
+                    <th>Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in passagens %}
+                <tr>
+                    <td>{{ p['cartao_id'] if p['cartao_id'] else 'N/A' }}</td>
+                    <td>{{ p['nome_passageiro'] if p['nome_passageiro'] else 'Desconhecido' }}</td>
+                    <td>{{ p['data_hora'] }}</td>
+                    <td style="font-weight: bold; color: {{ '#28a745' if p['status'] == 'aprovado' else '#dc3545' }}">
+                        {{ p['status']|upper }}
+                    </td>
+                    <td>R$ {{ "%.2f"|format(p['valor_cobrado']) }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center;">Nenhum registro encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <a href="/" class="menu-btn btn-voltar" style="margin-top: 20px;">Voltar ao início</a>
+{% endblock %}

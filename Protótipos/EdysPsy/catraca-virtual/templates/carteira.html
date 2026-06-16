@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Carteira de Ônibus</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .celular-container {
+            width: 360px;
+            height: 640px;
+            background: white;
+            border: 12px solid #222;
+            border-radius: 40px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .usuario-id {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .cartao-saldo {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .cartao-saldo h3 {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .cartao-saldo p {
+            margin: 10px 0 0 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .btn-qr {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.2s;
+        }
+
+        .btn-qr:hover {
+            background: #218838;
+        }
+
+        .historico {
+            flex-grow: 1;
+        }
+
+        .historico h4 {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            color: #555;
+            font-size: 16px;
+        }
+
+        .item-viagem {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            border-left: 4px solid #1e3c72;
+        }
+
+        .linha-nome {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .viagem-data {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .valor-pago {
+            color: #dc3545;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .sem-registro {
+            font-size: 13px;
+            color: #999;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="celular-container">
+        <div class="usuario-id">
+            ID Usuário Cadastrado: {{ id_usuario }}
+        </div>
+
+        <div class="cartao-saldo">
+            <h3>Saldo Disponível</h3>
+            <p>R$ {{ "%.2f"|format(saldo) }}</p>
+        </div>
+
+        <button class="btn-qr">Aproximar QR Code</button>
+
+        <div class="historico">
+            <h4>Histórico Recente de Viagens</h4>
+            {% for v in historico %}
+            <div class="item-viagem">
+                <div>
+                    <div class="linha-nome">{{ v.linha_onibus }}</div>
+                    <div class="viagem-data">
+                        {% if v.data_hora is string %}
+                        {{ v.data_hora }}
+                        {% else %}
+                        {{ v.data_hora.strftime('%d/%m/%Y %H:%M') }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="valor-pago">- R$ {{ "%.2f"|format(v.valor_pago) }}</div>
+            </div>
+            {% else %}
+            <p class="sem-registro">Nenhum registro encontrado.</p>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+
+</html>

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>📟 Catraca Virtual</h2>
+    <form action="/validar-catraca" method="POST">
+        <div class="form-group">
+            <label for="cartao_id">Digite o ID do Cartão:</label>
+            <input type="number" id="cartao_id" name="cartao_id" required placeholder="Ex: 1001" autofocus inputmode="numeric">
+        </div>
+        <button type="submit" class="btn" style="background: #e67e22;">Validar Entrada</button>
+    </form>
+    <a href="/" class="menu-btn btn-voltar">Voltar ao início</a>
+{% endblock %}
