@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Planejar viagem | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Passageiro</p>
+    <h1>Planejar viagem</h1>
+    <p class="lead">Monte uma rota fictícia com um ou mais trechos.</p>
+  </section>
+
+  {% if erro and not cartao %}
+    <div class="alert alert-danger">{{ erro }}</div>
+  {% else %}
+    <section class="split-layout">
+      <form class="panel form-panel" method="post" action="{{ url_acesso('usuario_planejar_viagem') }}">
+        <input name="token" type="hidden" value="{{ token_acesso }}">
+        <input name="trechos" type="hidden" value="{{ trechos_serializados }}">
+
+        {% if erro %}
+          <div class="alert alert-danger">{{ erro }}</div>
+        {% endif %}
+
+        <label for="origem_id">Origem</label>
+        <select id="origem_id" name="origem_id">
+          {% for estacao in estacoes %}
+            <option value="{{ estacao.id }}">{{ estacao.nome }}</option>
+          {% endfor %}
+        </select>
+
+        <label for="destino_id">Destino</label>
+        <select id="destino_id" name="destino_id">
+          {% for estacao in estacoes %}
+            <option value="{{ estacao.id }}">{{ estacao.nome }}</option>
+          {% endfor %}
+        </select>
+
+        <button class="button button-secondary" name="acao" value="adicionar" type="submit">Adicionar trecho</button>
+        <button class="button button-primary" name="acao" value="confirmar" type="submit">Confirmar viagem</button>
+        <button class="button button-quiet" name="acao" value="limpar" type="submit">Limpar trechos</button>
+      </form>
+
+      <article class="panel">
+        <h2>Trechos adicionados</h2>
+        {% if trechos %}
+          <ol class="trip-list">
+            {% for trecho in trechos %}
+              <li>
+                <span>{{ trecho.origem_nome }} → {{ trecho.destino_nome }}</span>
+                <span class="trip-actions">
+                  <button class="button button-quiet button-small" name="acao" value="subir:{{ loop.index0 }}" type="submit">Subir</button>
+                  <button class="button button-quiet button-small" name="acao" value="descer:{{ loop.index0 }}" type="submit">Descer</button>
+                  <button class="button button-quiet button-small" name="acao" value="remover:{{ loop.index0 }}" type="submit">Remover</button>
+                </span>
+              </li>
+            {% endfor %}
+          </ol>
+          <p class="muted-text">Valor estimado: {{ (trechos|length * valor_passagem)|moeda }}</p>
+        {% else %}
+          <p class="muted-text">Nenhum trecho adicionado.</p>
+        {% endif %}
+      </article>
+    </section>
+  {% endif %}
+{% endblock %}

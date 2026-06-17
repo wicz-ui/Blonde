@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Histórico | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Empresa de ônibus</p>
+    <h1>Histórico de passagens</h1>
+    <p class="lead">Registros temporários. Retenção atual: {{ retencao_horas }} horas.</p>
+  </section>
+
+  <section class="panel table-panel">
+    {% if passagens %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID cartão</th>
+              <th>Passageiro</th>
+              <th>Origem</th>
+              <th>Destino</th>
+              <th>Data e hora</th>
+              <th>Expira em</th>
+              <th>Resultado</th>
+              <th>Motivo</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for passagem in passagens %}
+              <tr>
+                <td data-label="ID cartão">{{ passagem.codigo_publico or passagem.cartao_digitado or "-" }}</td>
+                <td data-label="Passageiro">{{ passagem.nome_passageiro or "-" }}</td>
+                <td data-label="Origem">{{ passagem.origem_nome or "-" }}</td>
+                <td data-label="Destino">{{ passagem.destino_nome or "-" }}</td>
+                <td data-label="Data e hora">{{ passagem.data_hora }}</td>
+                <td data-label="Expira em">{{ passagem.expira_em or "-" }}</td>
+                <td data-label="Resultado">
+                  <span class="status status-{{ passagem.status }}">{{ passagem.status|capitalize }}</span>
+                </td>
+                <td data-label="Motivo">{{ passagem.motivo }}</td>
+                <td data-label="Valor">{{ passagem.valor_cobrado|moeda }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h2>Nenhuma passagem registrada</h2>
+        <p>As tentativas de validação aparecerão aqui.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Recarregar cartão | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Passageiro</p>
+    <h1>Recarregar cartão</h1>
+    <p class="lead">Recarga simulada, sem pagamento real.</p>
+  </section>
+
+  {% if not cartao %}
+    <div class="alert alert-danger">{{ erro }}</div>
+  {% else %}
+    <section class="split-layout">
+      <article class="panel">
+        <p class="eyebrow">Meu cartão</p>
+        <h2>{{ cartao.nome_usuario }}</h2>
+        <dl class="details-list">
+          <div>
+            <dt>Código</dt>
+            <dd>{{ cartao.codigo_publico }}</dd>
+          </div>
+          <div>
+            <dt>Saldo atual</dt>
+            <dd>{{ cartao.saldo|moeda }}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd><span class="status status-{{ cartao.status }}">{{ cartao.status|status_cartao }}</span></dd>
+          </div>
+        </dl>
+      </article>
+
+      <form class="panel form-panel" method="post" action="{{ url_acesso('usuario_recarregar_cartao') }}">
+        <input name="token" type="hidden" value="{{ token_acesso }}">
+
+        {% if erro %}
+          <div class="alert alert-danger">{{ erro }}</div>
+        {% endif %}
+        {% if sucesso %}
+          <div class="alert alert-success">
+            Recarga realizada com sucesso. Novo saldo: {{ sucesso.saldo_novo|moeda }}.
+          </div>
+        {% endif %}
+
+        <fieldset class="choice-grid">
+          <legend>Escolha o valor da recarga</legend>
+          {% for valor in valores_recarga %}
+            <label>
+              <input name="valor_recarga" type="radio" value="{{ valor }}" {% if valor_escolhido == valor|string %}checked{% endif %}>
+              {{ valor|moeda }}
+            </label>
+          {% endfor %}
+          <label>
+            <input name="valor_recarga" type="radio" value="outro" {% if valor_escolhido == "outro" %}checked{% endif %}>
+            Outro valor
+          </label>
+        </fieldset>
+
+        <label for="outro_valor">Outro valor</label>
+        <input id="outro_valor" name="outro_valor" type="text" inputmode="decimal" placeholder="Ex.: 35,00">
+        <p class="muted-text">Mínimo: {{ minimo|moeda }} · Máximo: {{ maximo|moeda }}</p>
+
+        <button class="button button-primary" type="submit">Confirmar recarga</button>
+      </form>
+    </section>
+  {% endif %}
+{% endblock %}

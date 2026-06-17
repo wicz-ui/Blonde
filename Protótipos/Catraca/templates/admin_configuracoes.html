@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Administração</p>
+    <h1>Configurações</h1>
+    <p class="lead">Controle o valor da passagem e por quanto tempo o histórico temporário fica no banco.</p>
+  </section>
+
+  <form class="panel form-panel config-panel" method="post" action="{{ url_acesso('admin_configuracoes') }}">
+    <input name="token" type="hidden" value="{{ token_acesso }}">
+    {% if erro %}
+      <div class="alert alert-danger">{{ erro }}</div>
+    {% endif %}
+
+    <label for="valor_passagem_padrao">Valor da passagem</label>
+    <input
+      id="valor_passagem_padrao"
+      name="valor_passagem_padrao"
+      type="text"
+      inputmode="decimal"
+      value="{{ valor_passagem }}"
+      required
+    >
+
+    <label for="historico_retencao_horas">Retenção do histórico de passagens em horas</label>
+    <input
+      id="historico_retencao_horas"
+      name="historico_retencao_horas"
+      type="number"
+      min="1"
+      value="{{ retencao_horas }}"
+      required
+    >
+
+    <label for="valor_minimo_recarga">Valor mínimo de recarga</label>
+    <input
+      id="valor_minimo_recarga"
+      name="valor_minimo_recarga"
+      type="text"
+      inputmode="decimal"
+      value="{{ minimo_recarga }}"
+      required
+    >
+
+    <label for="valor_maximo_recarga">Valor máximo de recarga</label>
+    <input
+      id="valor_maximo_recarga"
+      name="valor_maximo_recarga"
+      type="text"
+      inputmode="decimal"
+      value="{{ maximo_recarga }}"
+      required
+    >
+
+    <label for="historico_recargas_retencao_dias">Retenção do histórico de recargas em dias</label>
+    <input
+      id="historico_recargas_retencao_dias"
+      name="historico_recargas_retencao_dias"
+      type="number"
+      min="1"
+      value="{{ retencao_recargas_dias }}"
+      required
+    >
+
+    <label class="check-row">
+      <input name="permitir_download_pdf" type="checkbox" {% if permitir_pdf %}checked{% endif %}>
+      Permitir download do cartão em PDF
+    </label>
+
+    <label class="check-row">
+      <input name="exibir_saldo_no_pdf" type="checkbox" {% if exibir_saldo_pdf %}checked{% endif %}>
+      Exibir saldo no PDF
+    </label>
+
+    <button class="button button-primary" type="submit">Salvar configurações</button>
+  </form>
+{% endblock %}

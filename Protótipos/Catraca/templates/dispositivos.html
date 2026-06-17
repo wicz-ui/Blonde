@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Dispositivos | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Administração</p>
+    <h1>Dispositivos autorizados</h1>
+    <p class="lead">Cada link libera somente as funções permitidas para aquele dispositivo.</p>
+  </section>
+
+  <section class="split-layout devices-layout">
+    <form class="panel form-panel" method="post" action="{{ url_acesso('dispositivos') }}">
+      <input name="token" type="hidden" value="{{ token_acesso }}">
+
+      <h2>Novo dispositivo</h2>
+      {% if erro %}
+        <div class="alert alert-danger">{{ erro }}</div>
+      {% endif %}
+
+      <label for="nome_dispositivo">Nome do dispositivo</label>
+      <input
+        id="nome_dispositivo"
+        name="nome_dispositivo"
+        type="text"
+        value="{{ dados_form.nome_dispositivo }}"
+        placeholder="Ex.: Celular do João"
+        required
+      >
+
+      <label for="tipo">Tipo de acesso</label>
+      <select id="tipo" name="tipo">
+        <option value="catraca" {% if dados_form.tipo == "catraca" %}selected{% endif %}>Catraca</option>
+        <option value="usuario" {% if dados_form.tipo == "usuario" %}selected{% endif %}>Usuário</option>
+        <option value="admin" {% if dados_form.tipo == "admin" %}selected{% endif %}>Administrador</option>
+      </select>
+
+      <label for="cartao_id">Cartão do usuário, se aplicável</label>
+      <select id="cartao_id" name="cartao_id">
+        <option value="">Vincular depois</option>
+        {% for cartao in cartoes %}
+          <option value="{{ cartao.id }}" {% if dados_form.cartao_id == cartao.id|string %}selected{% endif %}>
+            {{ cartao.codigo_publico }} — {{ cartao.nome_passageiro }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <label for="estacao_id">Estação da catraca, se aplicável</label>
+      <select id="estacao_id" name="estacao_id">
+        {% for estacao in estacoes %}
+          <option value="{{ estacao.id }}" {% if dados_form.estacao_id == estacao.id|string %}selected{% endif %}>
+            {{ estacao.nome }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <button class="button button-primary" type="submit">Gerar acesso</button>
+    </form>
+
+    <article class="panel muted-panel">
+      <h2>Permissões</h2>
+      <dl class="details-list">
+        <div>
+          <dt>Catraca</dt>
+          <dd>Somente validação de entrada na estação configurada.</dd>
+        </div>
+        <div>
+          <dt>Usuário</dt>
+          <dd>Uso legado. O link privado recomendado é o token do passageiro.</dd>
+        </div>
+        <div>
+          <dt>Admin</dt>
+          <dd>Acesso completo ao sistema.</dd>
+        </div>
+      </dl>
+    </article>
+  </section>
+
+  <section class="device-list" aria-label="Lista de dispositivos">
+    {% for item in lista_dispositivos %}
+      <article class="panel device-item">
+        <div class="device-heading">
+          <div>
+            <p class="eyebrow">{{ item.tipo }}</p>
+            <h2>{{ item.nome_dispositivo }}</h2>
+          </div>
+          <span class="status {% if item.ativo %}status-ativo{% else %}status-bloqueado{% endif %}">
+            {% if item.ativo %}Ativo{% else %}Inativo{% endif %}
+          </span>
+        </div>
+
+        {% if item.tipo == "usuario" %}
+          <form class="inline-form" method="post" action="{{ url_acesso('vincular_dispositivo', dispositivo_id=item.id) }}">
+            <input name="token" type="hidden" value="{{ token_acesso }}">
+            <label for="cartao-{{ item.id }}">Cartão vinculado</label>
+            <select id="cartao-{{ item.id }}" name="cartao_id" required>
+              <option value="">Selecione um cartão</option>
+              {% for cartao in cartoes %}
+                <option value="{{ cartao.id }}" {% if item.cartao_id == cartao.id %}selected{% endif %}>
+                  {{ cartao.codigo_publico }} — {{ cartao.nome_passageiro }}
+                </option>
+              {% endfor %}
+            </select>
+            <button class="button button-secondary" type="submit">Vincular</button>
+          </form>
+        {% elif item.tipo == "catraca" %}
+          <form class="inline-form" method="post" action="{{ url_acesso('vincular_dispositivo', dispositivo_id=item.id) }}">
+            <input name="token" type="hidden" value="{{ token_acesso }}">
+            <label for="estacao-{{ item.id }}">Estação atual</label>
+            <select id="estacao-{{ item.id }}" name="estacao_id" required>
+              {% for estacao in estacoes %}
+                <option value="{{ estacao.id }}" {% if item.estacao_id == estacao.id %}selected{% endif %}>
+                  {{ estacao.nome }}
+                </option>
+              {% endfor %}
+            </select>
+            <button class="button button-secondary" type="submit">Atualizar</button>
+          </form>
+        {% endif %}
+
+        <div class="access-link">
+          <code>{{ links_acesso[item.id] }}</code>
+          <button class="copy-button" type="button" data-copy="{{ links_acesso[item.id] }}">Copiar link</button>
+        </div>
+
+        <form method="post" action="{{ url_acesso('alternar_dispositivo', dispositivo_id=item.id) }}">
+          <input name="token" type="hidden" value="{{ token_acesso }}">
+          <button class="button button-quiet" type="submit">
+            {% if item.ativo %}Desativar acesso{% else %}Ativar acesso{% endif %}
+          </button>
+        </form>
+      </article>
+    {% endfor %}
+  </section>
+{% endblock %}

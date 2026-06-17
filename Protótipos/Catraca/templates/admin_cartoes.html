@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Cartões | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Administração</p>
+    <h1>Cartões e usuários</h1>
+    <p class="lead">O código público valida na catraca; o token privado abre somente o cartão do dono.</p>
+  </section>
+
+  <section class="device-list">
+    {% for cartao in cartoes %}
+      <article class="panel device-item">
+        <div class="device-heading">
+          <div>
+            <p class="eyebrow">Código {{ cartao.codigo_publico }}</p>
+            <h2>{{ cartao.nome_usuario }}</h2>
+          </div>
+          <span class="status status-{{ cartao.status }}">{{ cartao.status|status_cartao }}</span>
+        </div>
+
+        <dl class="details-list">
+          <div>
+            <dt>Saldo</dt>
+            <dd>{{ cartao.saldo|moeda }}</dd>
+          </div>
+          <div>
+            <dt>Token privado</dt>
+            <dd><code>{{ cartao.token_usuario }}</code></dd>
+          </div>
+        </dl>
+
+        <div class="access-link">
+          <code>{{ links_usuario[cartao.id] }}</code>
+          <button class="copy-button" type="button" data-copy="{{ links_usuario[cartao.id] }}">Copiar link privado</button>
+        </div>
+
+        <form class="inline-form" method="post" action="{{ url_acesso('admin_alterar_status_cartao', cartao_id=cartao.id) }}">
+          <input name="token" type="hidden" value="{{ token_acesso }}">
+          <label for="status-{{ cartao.id }}">Status</label>
+          <select id="status-{{ cartao.id }}" name="status">
+            <option value="ativo" {% if cartao.status == "ativo" %}selected{% endif %}>Ativo</option>
+            <option value="bloqueado" {% if cartao.status == "bloqueado" %}selected{% endif %}>Bloqueado</option>
+          </select>
+          <button class="button button-secondary" type="submit">Salvar status</button>
+        </form>
+      </article>
+    {% else %}
+      <article class="panel empty-state">
+        <h2>Nenhum cartão cadastrado</h2>
+        <p>Crie um cartão para gerar código público e token privado.</p>
+      </article>
+    {% endfor %}
+  </section>
+{% endblock %}

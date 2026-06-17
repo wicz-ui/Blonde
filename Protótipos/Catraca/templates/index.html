@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Início | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Sistema acadêmico</p>
+      <h1>Sistema de Catraca Virtual para Ônibus</h1>
+      <p class="lead">Administre cartões, tokens privados, estações fictícias e histórico temporário da demonstração.</p>
+    </div>
+    <div class="fare-box">
+      <span>Valor da passagem</span>
+      <strong>{{ valor_passagem|moeda }}</strong>
+      <small>Retenção: {{ retencao_horas }}h</small>
+    </div>
+  </section>
+
+  <section class="stats-grid" aria-label="Resumo administrativo">
+    <article class="stat-card">
+      <span>Cartões</span>
+      <strong>{{ contadores.cartoes }}</strong>
+    </article>
+    <article class="stat-card">
+      <span>Usuários</span>
+      <strong>{{ contadores.usuarios }}</strong>
+    </article>
+    <article class="stat-card">
+      <span>Recargas</span>
+      <strong>{{ contadores.recargas }}</strong>
+    </article>
+    <article class="stat-card">
+      <span>Estações ativas</span>
+      <strong>{{ contadores.estacoes }}</strong>
+    </article>
+    <article class="stat-card">
+      <span>Histórico atual</span>
+      <strong>{{ contadores.historico }}</strong>
+    </article>
+  </section>
+
+  <section class="action-grid" aria-label="Áreas do sistema">
+    <a class="action-card" href="{{ url_acesso('criar_cartao') }}">
+      <span class="action-icon" aria-hidden="true">+</span>
+      <strong>Criar cartão</strong>
+      <small>Gera código público e token privado.</small>
+    </a>
+    <a class="action-card" href="{{ url_acesso('admin_cartoes') }}">
+      <span class="action-icon" aria-hidden="true">#</span>
+      <strong>Cartões</strong>
+      <small>Gerencia status e links privados.</small>
+    </a>
+    <a class="action-card" href="{{ url_acesso('historico') }}">
+      <span class="action-icon" aria-hidden="true">≡</span>
+      <strong>Histórico</strong>
+      <small>Registros temporários da catraca.</small>
+    </a>
+    <a class="action-card" href="{{ url_acesso('admin_recargas') }}">
+      <span class="action-icon" aria-hidden="true">$</span>
+      <strong>Recargas</strong>
+      <small>Histórico temporário de saldo.</small>
+    </a>
+    <a class="action-card" href="{{ url_acesso('admin_estacoes') }}">
+      <span class="action-icon" aria-hidden="true">⌂</span>
+      <strong>Estações</strong>
+      <small>Bairros e terminais fictícios.</small>
+    </a>
+    <a class="action-card" href="{{ url_acesso('admin_configuracoes') }}">
+      <span class="action-icon" aria-hidden="true">⚙</span>
+      <strong>Configurações</strong>
+      <small>Valor da passagem e retenção.</small>
+    </a>
+    <a class="action-card" href="{{ url_acesso('dispositivos') }}">
+      <span class="action-icon" aria-hidden="true">⌁</span>
+      <strong>Dispositivos</strong>
+      <small>Tokens de admin e catraca.</small>
+    </a>
+  </section>
+{% endblock %}
