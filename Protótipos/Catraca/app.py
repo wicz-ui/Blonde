@@ -691,6 +691,45 @@ def buscar_acesso(token):
     return None
 
 
+def buscar_acesso_por_credenciais(usuario, senha):
+    if not usuario or not senha:
+        return None
+
+    usuario = usuario.strip().lower()
+    senha = senha.strip()
+    if usuario not in {"admin", "catraca", "usuario"}:
+        return None
+
+    dispositivo = get_db().execute(
+        """
+        SELECT
+            dispositivos.id,
+            dispositivos.nome_dispositivo,
+            dispositivos.tipo,
+            dispositivos.token_acesso,
+            dispositivos.ativo,
+            dispositivos.cartao_id,
+            dispositivos.usuario_id,
+            dispositivos.estacao_id
+        FROM dispositivos
+        WHERE tipo = ? AND token_acesso = ? AND ativo = 1
+        """,
+        (usuario, senha),
+    ).fetchone()
+    if not dispositivo:
+        return None
+
+    acesso = dict(dispositivo)
+    acesso["origem_token"] = "dispositivo"
+    if acesso["tipo"] == "usuario" and not acesso.get("usuario_id") and acesso.get("cartao_id"):
+        cartao = get_db().execute(
+            "SELECT usuario_id FROM cartoes WHERE id = ?", (acesso["cartao_id"],)
+        ).fetchone()
+        if cartao:
+            acesso["usuario_id"] = cartao["usuario_id"]
+    return acesso
+
+
 def acesso_requerido(*tipos_permitidos):
     def decorar(funcao):
         @wraps(funcao)
@@ -857,28 +896,25 @@ def status_cartao_filter(status):
 @app.get("/")
 @app.get("/login")
 def login():
-    return render_template(
-        "login.html",
-        admin_token=os.getenv("ADMIN_TOKEN", "admin-demo-2026"),
-        catraca_token=os.getenv("CATRACA_TOKEN", "catraca-demo-2026"),
-        usuario_token=os.getenv("USUARIO_TOKEN", "usuario-demo-2026"),
-    )
+    return render_template("login.html")
 
 
 @app.post("/login")
 def login_submit():
-    token = request.form.get("token", "").strip()
-    if not token:
-        flash("Informe o token de acesso do dispositivo ou usuário.")
+    usuario = request.form.get("usuario", "").strip()
+    senha = request.form.get("senha", "").strip()
+
+    if not usuario or not senha:
+        flash("Informe usuário e senha.")
         return redirect(url_for("login"))
 
-    acesso = buscar_acesso(token)
+    acesso = buscar_acesso_por_credenciais(usuario, senha)
     if not acesso:
-        flash("Token inválido ou inativo.")
+        flash("Usuário ou senha inválidos.")
         return redirect(url_for("login"))
 
     endpoint = endpoint_do_dispositivo(acesso["tipo"])
-    return redirect(url_for(endpoint, token=token))
+    return redirect(url_for(endpoint, token=acesso["token_acesso"]))
 
 
 @app.get("/admin")
