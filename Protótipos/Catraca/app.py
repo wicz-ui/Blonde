@@ -1447,13 +1447,13 @@ def catraca():
 @app.post("/catraca/validar")
 @acesso_requerido("catraca")
 def validar_catraca():
-    cartao_digitado = extrair_codigo_publico(request.form.get("cartao_id", ""))
-    resultado = validar_entrada(cartao_digitado)
+    token_privado = (request.form.get("cartao_id", "") or "").strip()
+    resultado = validar_entrada_por_token_privado(token_privado)
     return render_template(
         "catraca.html",
         valor_passagem=valor_passagem_atual(),
         resultado=resultado,
-        cartao_id=cartao_digitado,
+        cartao_id=token_privado,
         estacao=estacao_catraca_atual(),
     )
 
@@ -1472,12 +1472,12 @@ def validar_entrada(cartao_digitado):
                 None,
                 cartao_digitado,
                 "negado",
-                "ID publico nao informado.",
+                "Token privado nao informado.",
                 Decimal("0.00"),
                 origem_id=origem_id,
             )
             db.execute("COMMIT")
-            return {"aprovado": False, "titulo": "Entrada negada.", "mensagem": "ID publico nao informado."}
+            return {"aprovado": False, "titulo": "Entrada negada.", "mensagem": "Token privado nao informado."}
 
         cartao = db.execute(
             """
@@ -1571,6 +1571,139 @@ def validar_entrada(cartao_digitado):
             db,
             cartao["id"],
             cartao_digitado,
+            "aprovado",
+            "Entrada liberada.",
+            valor_passagem,
+            origem_id=origem_id,
+            destino_id=destino_id,
+        )
+        limpar_historico_expirado(db)
+        db.execute("COMMIT")
+        return {
+            "aprovado": True,
+            "titulo": "Entrada aprovada.",
+            "mensagem": "Boa viagem!",
+            "codigo_publico": cartao["codigo_publico"],
+        }
+    except sqlite3.Error:
+        db.execute("ROLLBACK")
+        return {"aprovado": False, "titulo": "Entrada negada.", "mensagem": "Falha ao validar. Tente novamente."}
+
+
+def validar_entrada_por_token_privado(token_privado):
+    db = get_db()
+    token = (token_privado or "").strip()
+    estacao = estacao_catraca_atual()
+    origem_id = estacao["id"] if estacao else None
+    valor_passagem = valor_passagem_atual()
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        if not token:
+            registrar_passagem(
+                db,
+                None,
+                token,
+                "negado",
+                "Token privado nao informado.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+            )
+            db.execute("COMMIT")
+            return {"aprovado": False, "titulo": "Entrada negada.", "mensagem": "Token privado nao informado."}
+
+        cartao = db.execute(
+            """
+            SELECT
+                cartoes.*,
+                usuarios.nome AS nome_usuario,
+                usuarios.token_usuario
+            FROM cartoes
+            JOIN usuarios ON usuarios.id = cartoes.usuario_id
+            WHERE usuarios.token_usuario = ?
+            """,
+            (token,),
+        ).fetchone()
+
+        if cartao is None:
+            registrar_passagem(
+                db,
+                None,
+                token,
+                "negado",
+                "Cartao nao encontrado.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+            )
+            db.execute("COMMIT")
+            return {"aprovado": False, "titulo": "Entrada negada.", "mensagem": "Cartao nao encontrado."}
+
+        destino_id = None
+        rota, trecho = trecho_compativel_com_estacao(cartao, origem_id)
+        if rota and not trecho:
+            registrar_passagem(
+                db,
+                cartao["id"],
+                token,
+                "negado",
+                "Estacao fora da rota planejada.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+            )
+            db.execute("COMMIT")
+            return {
+                "aprovado": False,
+                "titulo": "Entrada negada.",
+                "mensagem": "Estacao fora da rota planejada.",
+                "codigo_publico": cartao["codigo_publico"],
+            }
+        if trecho:
+            destino_id = trecho["destino_id"]
+
+        saldo_atual = Decimal(str(cartao["saldo"])).quantize(Decimal("0.01"))
+        if cartao["status"] != "ativo":
+            registrar_passagem(
+                db,
+                cartao["id"],
+                token,
+                "negado",
+                "Cartao bloqueado.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+                destino_id=destino_id,
+            )
+            db.execute("COMMIT")
+            return {
+                "aprovado": False,
+                "titulo": "Entrada negada.",
+                "mensagem": "Cartao bloqueado.",
+                "codigo_publico": cartao["codigo_publico"],
+            }
+
+        if saldo_atual < valor_passagem:
+            registrar_passagem(
+                db,
+                cartao["id"],
+                token,
+                "negado",
+                "Saldo insuficiente.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+                destino_id=destino_id,
+            )
+            db.execute("COMMIT")
+            return {
+                "aprovado": False,
+                "titulo": "Entrada negada.",
+                "mensagem": "Saldo insuficiente.",
+                "codigo_publico": cartao["codigo_publico"],
+            }
+
+        novo_saldo = saldo_atual - valor_passagem
+        db.execute("UPDATE cartoes SET saldo = ? WHERE id = ?", (float(novo_saldo), cartao["id"]))
+        registrar_passagem(
+            db,
+            cartao["id"],
+            token,
             "aprovado",
             "Entrada liberada.",
             valor_passagem,

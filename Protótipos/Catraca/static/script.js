@@ -105,10 +105,12 @@ function createHtml5QrScanner(reader) {
 }
 
 function canUseLiveCamera() {
+  const hostname = (location && location.hostname) ? location.hostname : "";
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
   return Boolean(
-    window.isSecureContext
+    (window.isSecureContext || isLocalhost)
       && navigator.mediaDevices
-      && typeof navigator.mediaDevices.getUserMedia === "function",
+      && typeof navigator.mediaDevices.getUserMedia === "function"
   );
 }
 
@@ -128,68 +130,7 @@ function markScannerReady(form, scanner, panel, reader, button, fileButton) {
 }
 
 function openQrFileCapture(form, input, scanner, state, status, button, fileButton, reader) {
-  const fileInput = document.createElement("input");
-  fileInput.type = "file";
-  fileInput.accept = "image/*";
-  fileInput.setAttribute("capture", "environment");
-  fileInput.hidden = true;
-  document.body.appendChild(fileInput);
-  state.fileInput = fileInput;
-
-  button.disabled = false;
-  fileButton.disabled = true;
-  reader.hidden = true;
-  status.textContent = "A câmera será aberta. Fotografe o QR Code de perto, ocupando boa parte da tela.";
-
-  const keepCancelAvailable = () => {
-    window.setTimeout(() => {
-      const current = scannerState.get(form);
-      const hasSelectedFile = fileInput.files && fileInput.files.length > 0;
-      if (current === state && !current.stopped && !hasSelectedFile) {
-        button.disabled = false;
-        fileButton.disabled = false;
-        status.textContent = "Leitura cancelada. Toque em escanear novamente ou digite o código público.";
-      }
-    }, 500);
-  };
-
-  fileInput.addEventListener("change", async () => {
-    const current = scannerState.get(form);
-    if (!current || current.stopped) {
-      return;
-    }
-
-    const file = fileInput.files && fileInput.files[0];
-    if (!file) {
-      status.textContent = "Leitura cancelada. Toque em escanear novamente ou digite o código público.";
-      return;
-    }
-
-    try {
-      status.textContent = "Lendo QR Code da imagem capturada...";
-      const code = await scanner.scanFile(file, false);
-      if (!(await fillAndSubmitQrCode(form, input, code))) {
-        status.textContent = "QR Code não encontrado. Fotografe mais perto, com foco e sem reflexo.";
-        button.disabled = false;
-        fileButton.disabled = false;
-      }
-    } catch (_error) {
-      status.textContent = "Não foi possível ler o QR Code. Fotografe mais perto ou digite o código público.";
-      button.disabled = false;
-      fileButton.disabled = false;
-    } finally {
-      fileInput.remove();
-      state.fileInput = null;
-    }
-  });
-
-  fileInput.addEventListener("cancel", () => {
-    fileButton.disabled = false;
-    status.textContent = "Leitura cancelada. Toque em escanear novamente ou digite o código público.";
-  });
-
-  window.addEventListener("focus", keepCancelAvailable, { once: true });
-  fileInput.click();
+  // Removed file-based QR capture: camera-only flow is used.
 }
 
 async function getPreferredCameraId() {
@@ -217,9 +158,9 @@ function warnIfVideoDoesNotAppear(form, state, status, button, fileButton) {
     const video = state.reader ? state.reader.querySelector("video") : null;
     const videoReady = video && video.videoWidth > 0 && video.videoHeight > 0;
     if (current === state && state.cameraStarted && !state.stopped && !videoReady) {
-      status.textContent = "A câmera foi liberada, mas o vídeo não apareceu. Toque em usar foto do QR Code ou recarregue a página.";
-      button.disabled = false;
-      fileButton.disabled = false;
+      status.textContent = "A câmera foi liberada, mas o vídeo não apareceu. Recarregue a página ou digite o token privado do cartão.";
+      if (button) button.disabled = false;
+      if (fileButton) fileButton.disabled = false;
     }
   }, 1800);
 }
@@ -238,8 +179,7 @@ async function startQrLiveCamera(form, input, scanner, state, status, button, fi
     await fillAndSubmitQrCode(form, input, decodedText);
   };
 
-  button.disabled = true;
-  fileButton.disabled = false;
+  if (button) button.disabled = true;
   status.textContent = "Abrindo câmera...";
   const cameraId = await getPreferredCameraId();
   await scanner.start(cameraId, config, onSuccess);
@@ -260,14 +200,13 @@ async function startQrLiveCamera(form, input, scanner, state, status, button, fi
   warnIfVideoDoesNotAppear(form, state, status, button, fileButton);
   status.textContent = "Aponte a câmera para o QR Code do cartão.";
 }
-
+ 
 async function beginQrScan(form, preferFile = false) {
   const input = form.querySelector("#cartao_id");
   const panel = form.querySelector(".qr-scanner");
   const reader = panel.querySelector("[data-qr-reader], .qr-reader");
   const status = panel.querySelector("[data-qr-status]");
   const button = form.querySelector("[data-scan-qr]");
-  const fileButton = form.querySelector("[data-scan-qr-file]");
 
   await stopQrScanner(form);
   panel.hidden = false;
@@ -276,20 +215,22 @@ async function beginQrScan(form, preferFile = false) {
 
   const scanner = createHtml5QrScanner(reader);
   if (!scanner) {
-    status.textContent = "Biblioteca de leitura indisponível. Recarregue a página ou digite o código público.";
+    status.textContent = "Biblioteca de leitura indisponível. Recarregue a página ou digite o token privado do cartão.";
     return;
   }
 
-  const state = markScannerReady(form, scanner, panel, reader, button, fileButton);
-  if (preferFile || !canUseLiveCamera()) {
-    openQrFileCapture(form, input, scanner, state, status, button, fileButton, reader);
+  const state = markScannerReady(form, scanner, panel, reader, button, null);
+  if (!canUseLiveCamera()) {
+    status.textContent = "Câmera indisponível. Digite o token privado do cartão.";
     return;
   }
 
   try {
-    await startQrLiveCamera(form, input, scanner, state, status, button, fileButton);
-  } catch (_error) {
-    openQrFileCapture(form, input, scanner, state, status, button, fileButton, reader);
+    await startQrLiveCamera(form, input, scanner, state, status, button, null);
+  } catch (error) {
+    console.error("Erro ao abrir câmera:", error);
+    const msg = error && error.message ? error.message : "Não foi possível abrir a câmera.";
+    status.textContent = `${msg} Recarregue a página ou digite o token privado do cartão.`;
   }
 }
 
@@ -299,15 +240,15 @@ document.addEventListener("click", async (event) => {
     await stopQrScanner(stopButton.closest("form"));
     return;
   }
-
-  const fileButton = event.target.closest("[data-scan-qr-file]");
-  if (fileButton) {
-    await beginQrScan(fileButton.closest("form"), true);
-    return;
-  }
-
   const button = event.target.closest("[data-scan-qr]");
   if (button) {
-    await beginQrScan(button.closest("form"), false);
+    await beginQrScan(button.closest("form"));
+  }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.querySelector(".turnstile-form");
+  if (form) {
+    beginQrScan(form);
   }
 });
