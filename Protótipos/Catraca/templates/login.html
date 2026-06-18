@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Login | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header page-header-centered">
+    <p class="eyebrow">Entrar no sistema</p>
+    <h1>Selecione seu acesso ou cole o token</h1>
+    <p class="lead">Use o link autorizado ou o token para entrar como administrador, catraca ou passageiro.</p>
+  </section>
+
+  <section class="form-panel" style="max-width: 640px; margin: 0 auto;">
+    <form method="post" action="{{ url_for('login_submit') }}">
+      <label for="token">Token de acesso</label>
+      <input id="token" name="token" type="text" placeholder="Cole o token aqui" autocomplete="off" required>
+
+      <div class="button-row" style="justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 16px;">
+        <button class="button button-primary button-large" type="submit">Entrar</button>
+        <a class="button button-secondary button-large" href="{{ url_for('admin_home', token=admin_token) }}">Computador administrativo</a>
+        <a class="button button-secondary button-large" href="{{ url_for('catraca', token=catraca_token) }}">Catraca virtual principal</a>
+        <a class="button button-secondary button-large" href="{{ url_for('usuario_meu_cartao', token=usuario_token) }}">Celular do passageiro</a>
+      </div>
+    </form>
+
+    <div style="margin-top: 24px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #f8faf8;">
+      <strong>Tokens padrão:</strong>
+      <ul style="margin: 10px 0 0 18px; color: var(--muted);">
+        <li><code>{{ admin_token }}</code> — administrador</li>
+        <li><code>{{ catraca_token }}</code> — catraca</li>
+        <li><code>{{ usuario_token }}</code> — passageiro</li>
+      </ul>
+    </div>
+  </section>
+{% endblock %}

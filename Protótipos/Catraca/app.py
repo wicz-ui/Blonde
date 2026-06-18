@@ -855,6 +855,32 @@ def status_cartao_filter(status):
 
 
 @app.get("/")
+@app.get("/login")
+def login():
+    return render_template(
+        "login.html",
+        admin_token=os.getenv("ADMIN_TOKEN", "admin-demo-2026"),
+        catraca_token=os.getenv("CATRACA_TOKEN", "catraca-demo-2026"),
+        usuario_token=os.getenv("USUARIO_TOKEN", "usuario-demo-2026"),
+    )
+
+
+@app.post("/login")
+def login_submit():
+    token = request.form.get("token", "").strip()
+    if not token:
+        flash("Informe o token de acesso do dispositivo ou usuário.")
+        return redirect(url_for("login"))
+
+    acesso = buscar_acesso(token)
+    if not acesso:
+        flash("Token inválido ou inativo.")
+        return redirect(url_for("login"))
+
+    endpoint = endpoint_do_dispositivo(acesso["tipo"])
+    return redirect(url_for(endpoint, token=token))
+
+
 @app.get("/admin")
 @acesso_requerido("admin")
 def admin_home():
