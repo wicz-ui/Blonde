@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Painel{% endblock %}
+{% block content %}
+
+<section class="hero">
+    <p class="hero__eyebrow">Simulação de bilhetagem eletrônica</p>
+    <h1 class="hero__title">Catraca&nbsp;Virtual</h1>
+    <p class="hero__subtitle">
+        Um cartão de ônibus inteiro dentro do navegador. Crie um cartão no celular do
+        passageiro, valide a entrada no celular do operador e acompanhe tudo em tempo
+        real &mdash; sem catraca física, sem app instalado.
+    </p>
+</section>
+
+<section class="tiles" aria-label="Áreas do sistema">
+    <a class="tile" href="{{ url_for('criar_cartao') }}">
+        <span class="tile__icon" aria-hidden="true">＋</span>
+        <span class="tile__label">Criar cartão</span>
+        <span class="tile__desc">Emitir um novo cartão virtual para um passageiro</span>
+    </a>
+
+    <a class="tile" href="{{ url_for('buscar_cartao') }}">
+        <span class="tile__icon" aria-hidden="true">⌕</span>
+        <span class="tile__label">Consultar cartão</span>
+        <span class="tile__desc">Ver saldo, status e dados de um cartão pelo ID</span>
+    </a>
+
+    <a class="tile tile--accent" href="{{ url_for('catraca') }}">
+        <span class="tile__icon" aria-hidden="true">⛡</span>
+        <span class="tile__label">Catraca virtual</span>
+        <span class="tile__desc">Validar a entrada digitando o ID do cartão</span>
+    </a>
+
+    <a class="tile" href="{{ url_for('historico') }}">
+        <span class="tile__icon" aria-hidden="true">≣</span>
+        <span class="tile__label">Histórico</span>
+        <span class="tile__desc">Acompanhar todas as tentativas de embarque</span>
+    </a>
+</section>
+
+<section class="steps" aria-label="Como funciona">
+    <h2 class="steps__title">Como funciona a demonstração</h2>
+    <ol class="steps__list">
+        <li><span class="steps__number">01</span> O passageiro cria um cartão e recebe um ID.</li>
+        <li><span class="steps__number">02</span> O operador abre a tela da catraca em outro celular.</li>
+        <li><span class="steps__number">03</span> O ID é digitado e validado contra o banco SQLite.</li>
+        <li><span class="steps__number">04</span> A entrada é aprovada ou negada e fica registrada no histórico.</li>
+    </ol>
+</section>
+
+{% endblock %}

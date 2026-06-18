@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Catraca virtual{% endblock %}
+{% block content %}
+
+<section class="kiosk">
+    <p class="kiosk__eyebrow">Validador de entrada</p>
+    <h1 class="kiosk__title">Aproxime o cartão</h1>
+    <p class="kiosk__subtitle">Digite o ID do cartão virtual para liberar o embarque.</p>
+
+    <form method="POST" action="{{ url_for('catraca') }}" id="form-catraca" class="kiosk__form" novalidate>
+        <input type="number" name="cartao_id" id="cartao_id" class="kiosk__input"
+               placeholder="ID DO CARTÃO" autocomplete="off" autofocus required>
+        <button type="submit" class="btn btn--accent btn--block btn--lg">Validar entrada</button>
+    </form>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var input = document.getElementById('cartao_id');
+        if (input) { input.focus(); }
+
+        var form = document.getElementById('form-catraca');
+        if (form) {
+            form.addEventListener('submit', function () {
+                var btn = form.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                btn.classList.add('btn--loading');
+                btn.textContent = 'Processando…';
+            });
+        }
+    });
+</script>
+{% endblock %}

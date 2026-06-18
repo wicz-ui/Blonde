@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Consultar cartão{% endblock %}
+{% block content %}
+
+<section class="form-layout form-layout--single">
+    <div class="panel">
+        <h1 class="panel__title">Consultar cartão</h1>
+        <p class="panel__subtitle">Informe o ID gerado na criação para ver saldo e status atuais.</p>
+
+        <form method="GET" action="{{ url_for('buscar_cartao') }}" class="form form--inline" novalidate>
+            <label class="field field--grow">
+                <span class="field__label">ID do cartão</span>
+                <input type="number" name="cartao_id" placeholder="Ex: 1001"
+                       value="{{ request.args.get('cartao_id', '') }}" required>
+            </label>
+            <button type="submit" class="btn btn--primary">Buscar</button>
+        </form>
+    </div>
+
+    {% if cartao %}
+    <div class="preview">
+        <p class="preview__label">Cartão encontrado</p>
+        <div class="pass-card">
+            <div class="pass-card__row">
+                <span class="status-pill status-pill--{{ cartao.status }}">{{ cartao.status }}</span>
+                <span class="pass-card__tariff">Passagem R$ {{ "%.2f"|format(valor_tarifario) }}</span>
+            </div>
+            <p class="pass-card__id">ID #{{ cartao.id }}</p>
+            <p class="pass-card__name">{{ cartao.nome_passageiro }}</p>
+            <div class="pass-card__balance">
+                <span>Saldo disponível</span>
+                <strong>R$ {{ "%.2f"|format(cartao.saldo) }}</strong>
+            </div>
+        </div>
+        <p class="preview__meta">Emitido em {{ cartao.data_criacao }}</p>
+    </div>
+    {% endif %}
+</section>
+
+{% endblock %}

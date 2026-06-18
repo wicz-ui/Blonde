@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Criar cartão{% endblock %}
+{% block content %}
+
+<section class="form-layout">
+    <div class="panel">
+        <h1 class="panel__title">Criar cartão virtual</h1>
+        <p class="panel__subtitle">Preencha os dados do passageiro para emitir um novo cartão.</p>
+
+        <form method="POST" action="{{ url_for('criar_cartao') }}" class="form" novalidate>
+            <label class="field">
+                <span class="field__label">Nome do passageiro</span>
+                <input type="text" name="nome_passageiro" id="nome_passageiro"
+                       placeholder="Ex: João da Silva" autocomplete="off" required>
+            </label>
+
+            <label class="field">
+                <span class="field__label">Saldo inicial (R$)</span>
+                <input type="number" name="saldo" id="saldo" step="0.01" min="0"
+                       value="20.00" required>
+            </label>
+
+            <button type="submit" class="btn btn--primary btn--block">Emitir cartão</button>
+        </form>
+    </div>
+
+    <div class="preview" aria-hidden="true">
+        <p class="preview__label">Prévia do cartão</p>
+        <div class="pass-card">
+            <div class="pass-card__row">
+                <span class="status-pill status-pill--ativo">ativo</span>
+                <span class="pass-card__tariff">Passagem R$ {{ "%.2f"|format(valor_tarifario) }}</span>
+            </div>
+            <p class="pass-card__id" id="preview_id">ID #----</p>
+            <p class="pass-card__name" id="preview_nome">Nome do passageiro</p>
+            <div class="pass-card__balance">
+                <span>Saldo disponível</span>
+                <strong id="preview_saldo">R$ 20,00</strong>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var nomeInput = document.getElementById('nome_passageiro');
+        var saldoInput = document.getElementById('saldo');
+        var previewNome = document.getElementById('preview_nome');
+        var previewSaldo = document.getElementById('preview_saldo');
+
+        function atualizarPreview() {
+            previewNome.textContent = nomeInput.value.trim() || 'Nome do passageiro';
+            var saldo = parseFloat(saldoInput.value);
+            previewSaldo.textContent = 'R$ ' + (isNaN(saldo) ? '0,00' : saldo.toFixed(2).replace('.', ','));
+        }
+
+        nomeInput.addEventListener('input', atualizarPreview);
+        saldoInput.addEventListener('input', atualizarPreview);
+    });
+</script>
+{% endblock %}

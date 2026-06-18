@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Resultado{% endblock %}
+{% block content %}
+
+<section class="result result--{{ status }}" data-status="{{ status }}">
+    <div class="turnstile" aria-hidden="true">
+        <span class="turnstile__post"></span>
+        <span class="turnstile__arm"></span>
+    </div>
+
+    {% if status == 'aprovado' %}
+        <p class="result__icon">✓</p>
+        <h1 class="result__title">Entrada aprovada</h1>
+        <p class="result__motivo">{{ motivo }}</p>
+        <div class="result__balance">
+            <span>Saldo restante</span>
+            <strong>R$ {{ "%.2f"|format(saldo) }}</strong>
+        </div>
+    {% else %}
+        <p class="result__icon">✕</p>
+        <h1 class="result__title">Entrada negada</h1>
+        <p class="result__motivo">{{ motivo }}</p>
+        {% if cartao %}
+        <div class="result__balance">
+            <span>Saldo atual</span>
+            <strong>R$ {{ "%.2f"|format(cartao.saldo) }}</strong>
+        </div>
+        {% endif %}
+    {% endif %}
+
+    <p class="result__countdown">Voltando para a catraca em <span id="contador">4</span>s…</p>
+
+    <div class="result__actions">
+        <a href="{{ url_for('catraca') }}" class="btn btn--ghost">Validar outro cartão</a>
+        <a href="{{ url_for('index') }}" class="btn btn--ghost">Início</a>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.CatracaApp) {
+            CatracaApp.tocarSom('{{ status }}');
+            CatracaApp.iniciarContagemRegressiva('contador', 4, '{{ url_for("catraca") }}');
+        }
+    });
+</script>
+{% endblock %}
