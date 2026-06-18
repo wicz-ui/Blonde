@@ -695,27 +695,44 @@ def buscar_acesso_por_credenciais(usuario, senha):
     if not usuario or not senha:
         return None
 
-    usuario = usuario.strip().lower()
+    usuario = usuario.strip()
     senha = senha.strip()
-    if usuario not in {"admin", "catraca", "usuario"}:
-        return None
+    usuario_lower = usuario.lower()
 
-    dispositivo = get_db().execute(
-        """
-        SELECT
-            dispositivos.id,
-            dispositivos.nome_dispositivo,
-            dispositivos.tipo,
-            dispositivos.token_acesso,
-            dispositivos.ativo,
-            dispositivos.cartao_id,
-            dispositivos.usuario_id,
-            dispositivos.estacao_id
-        FROM dispositivos
-        WHERE tipo = ? AND token_acesso = ? AND ativo = 1
-        """,
-        (usuario, senha),
-    ).fetchone()
+    if usuario_lower in {"admin", "catraca"}:
+        dispositivo = get_db().execute(
+            """
+            SELECT
+                dispositivos.id,
+                dispositivos.nome_dispositivo,
+                dispositivos.tipo,
+                dispositivos.token_acesso,
+                dispositivos.ativo,
+                dispositivos.cartao_id,
+                dispositivos.usuario_id,
+                dispositivos.estacao_id
+            FROM dispositivos
+            WHERE tipo = ? AND token_acesso = ? AND ativo = 1
+            """,
+            (usuario, senha),
+        ).fetchone()
+    else:
+        dispositivo = get_db().execute(
+            """
+            SELECT
+                dispositivos.id,
+                dispositivos.nome_dispositivo,
+                dispositivos.tipo,
+                dispositivos.token_acesso,
+                dispositivos.ativo,
+                dispositivos.cartao_id,
+                dispositivos.usuario_id,
+                dispositivos.estacao_id
+            FROM dispositivos
+            WHERE tipo = 'usuario' AND LOWER(nome_dispositivo) = LOWER(?) AND token_acesso = ? AND ativo = 1
+            """,
+            (usuario, senha),
+        ).fetchone()
     if not dispositivo:
         return None
 
@@ -992,6 +1009,20 @@ def criar_cartao():
                         dados_form["status"],
                         criado_em,
                         criado_em,
+                    ),
+                )
+                db.execute(
+                    """
+                    INSERT INTO dispositivos (
+                        nome_dispositivo, tipo, token_acesso, ativo,
+                        usuario_id, cartao_id
+                    ) VALUES (?, 'usuario', ?, 1, ?, ?)
+                    """,
+                    (
+                        dados_form["nome_passageiro"],
+                        token_usuario,
+                        usuario_id,
+                        cartao_id,
                     ),
                 )
                 db.execute("COMMIT")
