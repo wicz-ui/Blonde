@@ -1,0 +1,15 @@
+{% if resultado %}
+  <article class="result-panel {% if resultado.aprovado %}result-approved{% else %}result-denied{% endif %}">
+    <p class="result-kicker">{% if resultado.aprovado %}Liberado{% else %}Negado{% endif %}</p>
+    <h2>{{ resultado.titulo }}</h2>
+    <p>{{ resultado.mensagem }}</p>
+    {% if resultado.codigo_publico %}
+      <dl class="details-list result-details">
+        <div>
+          <dt>Código</dt>
+          <dd>{{ resultado.codigo_publico }}</dd>
+        </div>
+      </dl>
+    {% endif %}
+  </article>
+{% endif %}

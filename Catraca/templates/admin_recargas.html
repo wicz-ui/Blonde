@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Recargas | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="page-header">
+    <p class="eyebrow">Administração</p>
+    <h1>Histórico de recargas</h1>
+    <p class="lead">Registros temporários. Retenção atual: {{ retencao_dias }} dias.</p>
+  </section>
+
+  <section class="panel table-panel">
+    {% if recargas %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Cartão</th>
+              <th>Passageiro</th>
+              <th>Data e hora</th>
+              <th>Valor</th>
+              <th>Saldo anterior</th>
+              <th>Novo saldo</th>
+              <th>Status</th>
+              <th>Expira em</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for recarga in recargas %}
+              <tr>
+                <td data-label="Cartão">{{ recarga.codigo_publico }}</td>
+                <td data-label="Passageiro">{{ recarga.nome_passageiro }}</td>
+                <td data-label="Data e hora">{{ recarga.data_hora }}</td>
+                <td data-label="Valor">{{ recarga.valor|moeda }}</td>
+                <td data-label="Saldo anterior">{{ recarga.saldo_anterior|moeda }}</td>
+                <td data-label="Novo saldo">{{ recarga.saldo_novo|moeda }}</td>
+                <td data-label="Status">{{ recarga.status|capitalize }}</td>
+                <td data-label="Expira em">{{ recarga.expira_em or "-" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <h2>Nenhuma recarga registrada</h2>
+        <p>As recargas simuladas aparecerão aqui.</p>
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

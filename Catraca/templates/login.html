@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Login | Catraca Virtual{% endblock %}
+
+{% block content %}
+  <section class="auth-layout">
+    <div class="auth-content">
+      <section class="page-header page-header-centered">
+        <p class="eyebrow">Entrar no sistema</p>
+        <h1>Faça login com nome ou código público e senha</h1>
+        <p class="lead">Informe seu nome ou código público e a senha para acessar a área correta do sistema.</p>
+      </section>
+
+      <section class="panel form-panel auth-form-panel">
+        <form method="post" action="{{ url_for('login_submit') }}">
+          <label for="usuario">Nome ou código público</label>
+          <input id="usuario" name="usuario" type="text" placeholder="admin, catraca, nome ou código público" autocomplete="username" required>
+
+          <label for="senha">Senha</label>
+          <div class="password-field-wrapper">
+            <input id="senha" name="senha" type="password" placeholder="Senha de acesso" autocomplete="current-password" required>
+            <button
+              type="button"
+              class="password-toggle"
+              data-password-toggle="#senha"
+              aria-label="Mostrar senha"
+              title="Mostrar senha"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+                <path d="M12 6.5c3.97 0 7.29 2.72 8.24 6.5-0.95 3.78-4.27 6.5-8.24 6.5s-7.29-2.72-8.24-6.5C4.71 9.22 8.03 6.5 12 6.5zm0 11c2.48 0 4.55-1.58 5.34-3.8-0.79-2.22-2.86-3.8-5.34-3.8s-4.55 1.58-5.34 3.8C7.45 16.92 9.52 17.5 12 17.5zm0-8a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="button-row auth-actions">
+            <button class="button button-primary button-large" type="submit">Entrar</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </section>
+{% endblock %}
