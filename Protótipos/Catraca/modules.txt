@@ -2313,6 +2313,13 @@ Vou adicionar os imports dos módulos em `routes/` no final de app.py e remover 
 
 Aplicar Patch
 
+© Tarefas pendentes (2/4)
+1. Criar médulos base (config, db, helpers, auth, pdf);
+2. Mover rotas para médulos separados (admin, usuario, dispositivos, catraca, main);
+3. Atualizar "app.py" para inicializar app e registrar médulos;
+4. Testar import e execucao basica (health endpoint).
+
+
 estrutura atual: 
 .
 ├── README.md
