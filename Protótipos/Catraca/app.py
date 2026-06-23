@@ -1,97 +1,49 @@
 import os
-import secrets
 import sqlite3
-import string
-from io import BytesIO
-from datetime import datetime, timedelta
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
-from functools import wraps
-from pathlib import Path
-from zoneinfo import ZoneInfo
+from decimal import Decimal
 
 from flask import Flask, Response, flash, g, redirect, render_template, request, url_for
-from reportlab.graphics import renderPDF
-from reportlab.graphics.barcode.qr import QrCodeWidget
-from reportlab.graphics.shapes import Drawing
-from reportlab.lib import colors
-from reportlab.pdfgen import canvas
+
+from utils.config import (
+    STATIC_VERSION,
+    CONFIG_PADRAO,
+    TIPOS_DISPOSITIVO,
+    DISPOSITIVOS_PADRAO,
+    ESTACOES_PADRAO,
+    DATABASE,
+)
+from utils.database import get_db, close_db
+from utils.helpers import (
+    agora_dt,
+    agora_formatado,
+    formatar_moeda,
+    gerar_token_usuario,
+    gerar_token_acesso,
+    parse_valor,
+    parse_int_positivo,
+    extrair_codigo_publico,
+    valores_recarga_padrao,
+    endpoint_do_dispositivo,
+    status_cartao_filter,
+)
+from utils.auth import (
+    token_da_requisicao,
+    buscar_acesso,
+    buscar_acesso_por_credenciais,
+    acesso_requerido,
+)
+from utils.pdf import gerar_pdf_cartao
 
 
-BASE_DIR = Path(__file__).resolve().parent
-DATABASE = BASE_DIR / "database.db"
-FUSO_HORARIO = ZoneInfo("America/Sao_Paulo")
-TIPOS_DISPOSITIVO = {"catraca", "usuario", "admin"}
-CONFIG_PADRAO = {
-    "historico_retencao_horas": "24",
-    "historico_recargas_retencao_dias": "30",
-    "permitir_download_pdf": "true",
-    "exibir_saldo_no_pdf": "true",
-    "valor_maximo_recarga": "200.00",
-    "valor_minimo_recarga": "5.00",
-    "valor_passagem_padrao": "5.00",
-}
-STATIC_VERSION = "20260610-qr-camera"
-DISPOSITIVOS_PADRAO = (
-    ("Computador administrativo", "admin", os.getenv("ADMIN_TOKEN", "admin-demo-2026")),
-    ("Catraca virtual principal", "catraca", os.getenv("CATRACA_TOKEN", "catraca-demo-2026")),
-    ("Celular do passageiro", "usuario", os.getenv("USUARIO_TOKEN", "usuario-demo-2026")),
-)
-ESTACOES_PADRAO = (
-    ("Terminal Central", "Centro"),
-    ("Centro", "Centro"),
-    ("Higienopolis", "Centro"),
-    ("Ipiranga", "Centro"),
-    ("Petropolis", "Centro"),
-    ("Quebec", "Oeste"),
-    ("Shangri-la", "Oeste"),
-    ("Vila Brasil", "Centro"),
-    ("Vila Casoni", "Norte"),
-    ("Vila Nova", "Norte"),
-    ("Gleba Palhano", "Sul"),
-    ("Jardim Aeroporto", "Leste"),
-    ("Jardim Leonor", "Oeste"),
-    ("Jardim Bandeirantes", "Oeste"),
-    ("Jardim Alvorada", "Oeste"),
-    ("Jardim Sabara", "Oeste"),
-    ("Jardim Interlagos", "Leste"),
-    ("Cinco Conjuntos", "Norte"),
-    ("Jardim Coliseu", "Norte"),
-    ("Jardim Pacaembu", "Norte"),
-    ("Jardim Cafezal", "Sul"),
-    ("Terminal Oeste", "Oeste"),
-    ("Terminal Norte", "Norte"),
-    ("Terminal Sul", "Sul"),
-    ("Terminal Acapulco", "Sul"),
-    ("Cambe", "Regiao Metropolitana"),
-    ("Ibipora", "Regiao Metropolitana"),
-    ("Rolandia", "Regiao Metropolitana"),
-    ("Paiquere", "Distrito"),
-    ("Guaravera", "Distrito"),
-    ("Warta", "Distrito"),
-    ("Lerroville", "Distrito"),
-    ("Irere", "Distrito"),
-    ("Maravilha", "Distrito"),
-    ("Sao Luiz", "Distrito"),
-)
+# constants moved to config.py
 
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "catraca-demo-secret")
 
 
-def get_db():
-    if "db" not in g:
-        g.db = sqlite3.connect(DATABASE, timeout=30, isolation_level=None)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys=ON")
-    return g.db
-
-
-@app.teardown_appcontext
-def close_db(_error=None):
-    db = g.pop("db", None)
-    if db is not None:
-        db.close()
+# register teardown
+app.teardown_appcontext(close_db)
 
 
 def colunas_tabela(db, tabela):
@@ -111,55 +63,7 @@ def formatar_data(dt):
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def agora_formatado():
-    return formatar_data(agora_dt())
 
-
-def gerar_token_usuario(db=None):
-    alfabeto = string.ascii_uppercase + string.digits
-    while True:
-        partes = ["".join(secrets.choice(alfabeto) for _ in range(4)) for _ in range(3)]
-        token = "-".join(partes)
-        if db is None:
-            with sqlite3.connect(DATABASE) as banco:
-                existe = banco.execute(
-                    "SELECT 1 FROM usuarios WHERE token_usuario = ?", (token,)
-                ).fetchone()
-        else:
-            existe = db.execute(
-                "SELECT 1 FROM usuarios WHERE token_usuario = ?", (token,)
-            ).fetchone()
-        if not existe:
-            return token
-
-
-def gerar_token_acesso():
-    return secrets.token_urlsafe(24)
-
-
-def parse_valor(valor):
-    texto = (valor or "").strip().replace(",", ".")
-    try:
-        numero = Decimal(texto).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    except (InvalidOperation, ValueError):
-        return None
-
-    if numero < 0:
-        return None
-    return numero
-
-
-def parse_int_positivo(valor, padrao):
-    try:
-        numero = int(str(valor).strip())
-    except (TypeError, ValueError):
-        return padrao
-    return numero if numero > 0 else padrao
-
-
-def formatar_moeda(valor):
-    numero = Decimal(str(valor or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    return f"R$ {numero:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def init_db():
@@ -633,164 +537,13 @@ def extrair_codigo_publico(valor):
     return texto
 
 
-def token_da_requisicao():
-    return request.values.get("token", "").strip()
 
 
-def buscar_acesso(token):
-    if not token:
-        return None
-
-    dispositivo = get_db().execute(
-        """
-        SELECT
-            dispositivos.id,
-            dispositivos.nome_dispositivo,
-            dispositivos.tipo,
-            dispositivos.token_acesso,
-            dispositivos.ativo,
-            dispositivos.cartao_id,
-            dispositivos.usuario_id,
-            dispositivos.estacao_id
-        FROM dispositivos
-        WHERE token_acesso = ? AND ativo = 1
-        """,
-        (token,),
-    ).fetchone()
-    if dispositivo:
-        acesso = dict(dispositivo)
-        acesso["origem_token"] = "dispositivo"
-        if acesso["tipo"] == "usuario" and not acesso.get("usuario_id") and acesso.get("cartao_id"):
-            cartao = get_db().execute(
-                "SELECT usuario_id FROM cartoes WHERE id = ?", (acesso["cartao_id"],)
-            ).fetchone()
-            if cartao:
-                acesso["usuario_id"] = cartao["usuario_id"]
-        return acesso
-
-    usuario = get_db().execute(
-        """
-        SELECT id, nome, token_usuario, ativo
-        FROM usuarios
-        WHERE token_usuario = ? AND ativo = 1
-        """,
-        (token,),
-    ).fetchone()
-    if usuario:
-        return {
-            "id": None,
-            "nome_dispositivo": f"Passageiro: {usuario['nome']}",
-            "tipo": "usuario",
-            "token_acesso": usuario["token_usuario"],
-            "ativo": usuario["ativo"],
-            "cartao_id": None,
-            "usuario_id": usuario["id"],
-            "estacao_id": None,
-            "origem_token": "usuario",
-        }
-    return None
 
 
-def buscar_acesso_por_credenciais(usuario, senha):
-    if not usuario or not senha:
-        return None
-
-    usuario = usuario.strip()
-    senha = senha.strip()
-    usuario_lower = usuario.lower()
-
-    if usuario_lower in {"admin", "catraca"}:
-        dispositivo = get_db().execute(
-            """
-            SELECT
-                dispositivos.id,
-                dispositivos.nome_dispositivo,
-                dispositivos.tipo,
-                dispositivos.token_acesso,
-                dispositivos.ativo,
-                dispositivos.cartao_id,
-                dispositivos.usuario_id,
-                dispositivos.estacao_id
-            FROM dispositivos
-            WHERE tipo = ? AND token_acesso = ? AND ativo = 1
-            """,
-            (usuario, senha),
-        ).fetchone()
-    else:
-        dispositivo = get_db().execute(
-            """
-            SELECT
-                dispositivos.id,
-                dispositivos.nome_dispositivo,
-                dispositivos.tipo,
-                dispositivos.token_acesso,
-                dispositivos.ativo,
-                dispositivos.cartao_id,
-                dispositivos.usuario_id,
-                dispositivos.estacao_id
-            FROM dispositivos
-            WHERE tipo = 'usuario' AND LOWER(nome_dispositivo) = LOWER(?) AND token_acesso = ? AND ativo = 1
-            """,
-            (usuario, senha),
-        ).fetchone()
-    if not dispositivo:
-        return None
-
-    acesso = dict(dispositivo)
-    acesso["origem_token"] = "dispositivo"
-    if acesso["tipo"] == "usuario" and not acesso.get("usuario_id") and acesso.get("cartao_id"):
-        cartao = get_db().execute(
-            "SELECT usuario_id FROM cartoes WHERE id = ?", (acesso["cartao_id"],)
-        ).fetchone()
-        if cartao:
-            acesso["usuario_id"] = cartao["usuario_id"]
-    return acesso
 
 
-def acesso_requerido(*tipos_permitidos):
-    def decorar(funcao):
-        @wraps(funcao)
-        def autorizar(*args, **kwargs):
-            token = token_da_requisicao()
-            acesso = buscar_acesso(token)
 
-            if acesso is None:
-                return (
-                    render_template(
-                        "acesso_negado.html",
-                        titulo="Acesso não autorizado",
-                        mensagem="Use o link autorizado fornecido para este dispositivo ou passageiro.",
-                    ),
-                    401,
-                )
-
-            g.acesso = acesso
-            g.dispositivo = acesso
-            g.token_acesso = token
-
-            if acesso["tipo"] != "admin" and acesso["tipo"] not in tipos_permitidos:
-                return (
-                    render_template(
-                        "acesso_negado.html",
-                        titulo="Área não permitida",
-                        mensagem="Este acesso não possui permissão para abrir esta tela.",
-                    ),
-                    403,
-                )
-
-            return funcao(*args, **kwargs)
-
-        return autorizar
-
-    return decorar
-
-
-def endpoint_do_dispositivo(tipo):
-    return {
-        "admin": "admin_home",
-        "catraca": "catraca",
-        "usuario": "usuario_meu_cartao",
-    }[tipo]
 
 
 def estacoes_ativas():
@@ -906,8 +659,11 @@ def moeda_filter(valor):
 
 
 @app.template_filter("status_cartao")
-def status_cartao_filter(status):
-    return "Ativo" if status == "ativo" else "Bloqueado"
+def _status_cartao_template(status):
+    return status_cartao_filter(status)
+
+
+
 
 
 @app.get("/")
@@ -1100,8 +856,7 @@ def usuario_meu_cartao():
     )
 
 
-def valores_recarga_padrao():
-    return [Decimal("10.00"), Decimal("20.00"), Decimal("50.00"), Decimal("100.00")]
+
 
 
 def cartao_usuario_atual_ou_erro():
@@ -1258,19 +1013,7 @@ def usuario_cartao_pdf():
     )
 
 
-def decodificar_trechos(valor):
-    trechos = []
-    for parte in (valor or "").split(";"):
-        if not parte or "-" not in parte:
-            continue
-        origem, destino = parte.split("-", 1)
-        if origem.isdigit() and destino.isdigit():
-            trechos.append((int(origem), int(destino)))
-    return trechos
 
-
-def codificar_trechos(trechos):
-    return ";".join(f"{origem}-{destino}" for origem, destino in trechos)
 
 
 def trechos_preview(trechos):
