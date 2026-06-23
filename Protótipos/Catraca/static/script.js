@@ -17,6 +17,36 @@ document.addEventListener("click", async (event) => {
   }
 });
 
+document.addEventListener("click", (event) => {
+  const toggle = event.target.closest("[data-password-toggle]");
+  if (!toggle) {
+    return;
+  }
+
+  const selector = toggle.getAttribute("data-password-toggle");
+  if (!selector) {
+    return;
+  }
+
+  const input = document.querySelector(selector);
+  if (!input || input.type !== "password" && input.type !== "text") {
+    return;
+  }
+
+  const showing = input.type === "text";
+  input.type = showing ? "password" : "text";
+  const label = showing ? "Mostrar senha" : "Ocultar senha";
+  toggle.setAttribute("aria-label", label);
+  toggle.setAttribute("title", label);
+
+  const svg = toggle.querySelector("svg");
+  if (svg) {
+    svg.innerHTML = showing
+      ? '<path d="M12 6.5c3.97 0 7.29 2.72 8.24 6.5-0.95 3.78-4.27 6.5-8.24 6.5s-7.29-2.72-8.24-6.5C4.71 9.22 8.03 6.5 12 6.5zm0 11c2.48 0 4.55-1.58 5.34-3.8-0.79-2.22-2.86-3.8-5.34-3.8s-4.55 1.58-5.34 3.8C7.45 16.92 9.52 17.5 12 17.5zm0-8a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"></path>'
+      : '<path d="M12 6.5c3.97 0 7.29 2.72 8.24 6.5-0.95 3.78-4.27 6.5-8.24 6.5s-7.29-2.72-8.24-6.5c0.89-2.79 3.25-4.99 6.24-5.68V6.5zm0 11c-2.48 0-4.55-1.58-5.34-3.8 0.79-2.22 2.86-3.8 5.34-3.8 2.48 0 4.55 1.58 5.34 3.8-0.79 2.22-2.86 3.8-5.34 3.8zm0-8a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"></path>';
+  }
+});
+
 const scannerState = new WeakMap();
 
 function getQrElements(form) {
@@ -250,5 +280,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.querySelector(".turnstile-form");
   if (form) {
     beginQrScan(form);
+  }
+
+  // Converter nome para caixa alta
+  const nomeInput = document.getElementById("nome_passageiro");
+  if (nomeInput) {
+    nomeInput.addEventListener("blur", (e) => {
+      e.target.value = e.target.value.toUpperCase();
+    });
   }
 });

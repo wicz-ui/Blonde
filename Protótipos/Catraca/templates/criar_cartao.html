@@ -26,6 +26,26 @@
         autocomplete="name"
       >
 
+      <label for="cpf">CPF</label>
+      <input
+        id="cpf"
+        name="cpf"
+        type="number"
+        placeholder="00000000000"
+        value="{{ dados_form.cpf }}"
+        required
+      >
+
+      <label for="numero_celular">Número de celular</label>
+      <input
+        id="numero_celular"
+        name="numero_celular"
+        type="number"
+        placeholder="11999999999"
+        value="{{ dados_form.numero_celular }}"
+        required
+      >
+
       <label for="saldo">Saldo inicial</label>
       <input
         id="saldo"
@@ -56,6 +76,14 @@
           <div>
             <dt>Passageiro</dt>
             <dd>{{ cartao_criado.nome_usuario }}</dd>
+          </div>
+          <div>
+            <dt>CPF</dt>
+            <dd>{{ cartao_criado.cpf }}</dd>
+          </div>
+          <div>
+            <dt>Celular</dt>
+            <dd>{{ cartao_criado.numero_celular }}</dd>
           </div>
           <div>
             <dt>Código público</dt>

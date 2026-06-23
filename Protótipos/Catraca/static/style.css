@@ -306,6 +306,39 @@ h2 {
   gap: 12px;
 }
 
+.password-field-wrapper {
+  position: relative;
+}
+
+.password-field-wrapper input {
+  padding-right: 46px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle svg {
+  display: block;
+  fill: currentColor;
+}
+
+.password-toggle:focus-visible {
+  outline: 3px solid rgba(15, 118, 110, 0.32);
+  border-radius: 999px;
+}
+
 label {
   color: #30443b;
   font-size: 0.9rem;
