@@ -1,0 +1,2385 @@
+Optimized tool selectionConferindo o arquivo para estruturar a divisão em módulos.
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#1-1), lines 1 to 400
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#400-400), lines 400 to 800
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#800-800), lines 800 to 1200
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#1200-1200), lines 1200 to 1600
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#1600-1600), lines 1600 to 2000
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#2000-2000), lines 2000 to 2103
+
+Criando a estrutura de módulos e separando responsabilidades.
+
+Created [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/routes)
+
+Created [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils)
+
+Gerando os módulos de infraestrutura para separar configuração, banco de dados, helpers e autenticação.
+
+Replacing 2 lines with 153 lines in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/__init__.py), [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/config.py)
+
+
+```
+
+```
+
+```
+
+```
+Continuando a criar módulos para banco, helpers, auth e PDF.
+
+Replacing 3 lines with 315 lines in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/database.py), [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/helpers.py), [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/auth.py)
+
+
+```
+
+```
+
+```
+
+```
+
+```
+
+```
+Estrutura básica criada; agora vou extrair a lógica do PDF e da inicialização do banco.
+
+Replacing 2 lines with 170 lines in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/pdf.py), [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/migrate.py)
+
+
+```
+
+```
+
+```
+
+```
+Revisando os módulos criados para ajustar dependências circulares antes de prosseguir.
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/config.py)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/helpers.py)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/migrate.py)
+
+Agora reescrevendo os módulos utilitários e as rotas em arquivos separados.
+
+Ran terminal command:  cd /workspaces/Blonde/Protótipos/Catraca && cat > utils/config.py <<'PY'
+from pathlib import Path
+from datetime import timedelta
+from decimal import Decimal
+
+from .helpers import parse_int_positivo, parse_valor
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATABASE = BASE_DIR / "database.db"
+TIPOS_DISPOSITIVO = {"catraca", "usuario", "admin"}
+CONFIG_PADRAO = {
+    "historico_retencao_horas": "24",
+    "historico_recargas_retencao_dias": "30",
+    "permitir_download_pdf": "true",
+    "exibir_saldo_no_pdf": "true",
+    "valor_maximo_recarga": "200.00",
+    "valor_minimo_recarga": "5.00",
+    "valor_passagem_padrao": "5.00",
+}
+STATIC_VERSION = "20260610-qr-camera"
+DISPOSITIVOS_PADRAO = (
+    ("Computador administrativo", "admin", __import__("os").getenv("ADMIN_TOKEN", "admin-demo-2026")),
+    ("Catraca virtual principal", "catraca", __import__("os").getenv("CATRACA_TOKEN", "catraca-demo-2026")),
+    ("Celular do passageiro", "usuario", __import__("os").getenv("USUARIO_TOKEN", "usuario-demo-2026")),
+)
+ESTACOES_PADRAO = (
+    ("Terminal Central", "Centro"),
+    ("Centro", "Centro"),
+    ("Higienopolis", "Centro"),
+    ("Ipiranga", "Centro"),
+    ("Petropolis", "Centro"),
+    ("Quebec", "Centro"),
+    ("Shangri-la", "Oeste"),
+    ("Vila Brasil", "Centro"),
+    ("Vila Casoni", "Norte"),
+    ("Vila Nova", "Norte"),
+    ("Gleba Palhano", "Sul"),
+    ("Jardim Aeroporto", "Leste"),
+    ("Jardim Leonor", "Oeste"),
+    ("Jardim Bandeirantes", "Oeste"),
+    ("Jardim Alvorada", "Oeste"),
+    ("Jardim Sabara", "Oeste"),
+    ("Jardim Interlagos", "Leste"),
+    ("Cinco Conjuntos", "Norte"),
+    ("Jardim Coliseu", "Norte"),
+    ("Jardim Pacaembu", "Norte"),
+    ("Jardim Cafezal", "Sul"),
+    ("Terminal Oeste", "Oeste"),
+    ("Terminal Norte", "Norte"),
+    ("Terminal Sul", "Sul"),
+    ("Terminal Acapulco", "Sul"),
+    ("Cambe", "Regiao Metropolitana"),
+    ("Ibipora", "Regiao Metropolitana"),
+    ("Rolandia", "Regiao Metropolitana"),
+    ("Paiquere", "Distrito"),
+    ("Guaravera", "Distrito"),
+    ("Warta", "Distrito"),
+    ("Lerroville", "Distrito"),
+    ("Irere", "Distrito"),
+    ("Maravilha", "Distrito"),
+    ("Sao Luiz", "Distrito"),
+)
+
+
+def _get_db():
+    from .database import get_db
+
+    return get_db()
+
+
+def get_config(chave, padrao=None, db=None):
+    banco = db or _get_db()
+    row = banco.execute(
+        "SELECT valor FROM configuracoes WHERE chave = ?",
+        (chave,),
+    ).fetchone()
+    return row["valor"] if row else padrao
+
+
+def set_config(chave, valor):
+    from .database import get_db
+
+    get_db().execute(
+        """
+        INSERT INTO configuracoes (chave, valor)
+        VALUES (?, ?)
+        ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor
+        """,
+        (chave, str(valor)),
+    )
+
+
+def valor_passagem_atual(db=None):
+    valor = parse_valor(
+        get_config("valor_passagem_padrao", CONFIG_PADRAO["valor_passagem_padrao"], db=db)
+    )
+    return valor or Decimal(CONFIG_PADRAO["valor_passagem_padrao"])
+
+
+def valor_minimo_recarga(db=None):
+    valor = parse_valor(
+        get_config("valor_minimo_recarga", CONFIG_PADRAO["valor_minimo_recarga"], db=db)
+    )
+    return valor or Decimal(CONFIG_PADRAO["valor_minimo_recarga"])
+
+
+def valor_maximo_recarga(db=None):
+    valor = parse_valor(
+        get_config("valor_maximo_recarga", CONFIG_PADRAO["valor_maximo_recarga"], db=db)
+    )
+    return valor or Decimal(CONFIG_PADRAO["valor_maximo_recarga"])
+
+
+def horas_retencao_historico(db=None):
+    return parse_int_positivo(
+        get_config(
+            "historico_retencao_horas",
+            CONFIG_PADRAO["historico_retencao_horas"],
+            db=db,
+        ),
+        int(CONFIG_PADRAO["historico_retencao_horas"]),
+    )
+
+
+def dias_retencao_recargas(db=None):
+    return parse_int_positivo(
+        get_config(
+            "historico_recargas_retencao_dias",
+            CONFIG_PADRAO["historico_recargas_retencao_dias"],
+            db=db,
+        ),
+        int(CONFIG_PADRAO["historico_recargas_retencao_dias"]),
+    )
+
+
+def config_bool(chave, padrao="true", db=None):
+    valor = str(get_config(chave, padrao, db=db)).strip().lower()
+    return valor in {"1", "true", "sim", "yes", "on"}
+
+
+def expira_em_formatado():
+    from .helpers import agora_dt, formatar_data
+
+    return formatar_data(agora_dt() + timedelta(hours=horas_retencao_historico()))
+
+
+def recarga_expira_em_formatado():
+    from .helpers import agora_dt, formatar_data
+
+    return formatar_data(agora_dt() + timedelta(days=dias_retencao_recargas()))
+PY
+
+cat > utils/helpers.py <<'PY'
+import secrets
+import string
+from datetime import datetime
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from zoneinfo import ZoneInfo
+
+FUSO_HORARIO = ZoneInfo("America/Sao_Paulo")
+
+
+def agora_dt():
+    return datetime.now(FUSO_HORARIO)
+
+
+def formatar_data(dt):
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def agora_formatado():
+    return formatar_data(agora_dt())
+
+
+def gerar_token_usuario(db=None):
+    from .database import get_db
+
+    alfabeto = string.ascii_uppercase + string.digits
+    while True:
+        partes = ["".join(secrets.choice(alfabeto) for _ in range(4)) for _ in range(3)]
+        token = "-".join(partes)
+        banco = db or get_db()
+        existe = banco.execute(
+            "SELECT 1 FROM usuarios WHERE token_usuario = ?",
+            (token,),
+        ).fetchone()
+        if not existe:
+            return token
+
+
+def gerar_token_acesso():
+    return secrets.token_urlsafe(24)
+
+
+def parse_valor(valor):
+    texto = (valor or "").strip().replace(",", ".")
+    try:
+        numero = Decimal(texto).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    except (InvalidOperation, ValueError):
+        return None
+
+    if numero < 0:
+        return None
+    return numero
+
+
+def parse_int_positivo(valor, padrao):
+    try:
+        numero = int(str(valor).strip())
+    except (TypeError, ValueError):
+        return padrao
+    return numero if numero > 0 else padrao
+
+
+def formatar_moeda(valor):
+    numero = Decimal(str(valor or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return f"R$ {numero:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def extrair_codigo_publico(valor):
+    texto = (valor or "").strip()
+    if texto.upper().startswith("CARD:"):
+        return texto.split(":", 1)[1].strip()
+    return texto
+
+
+def decodificar_trechos(valor):
+    trechos = []
+    for parte in (valor or "").split(";"):
+        if not parte or "-" not in parte:
+            continue
+        origem, destino = parte.split("-", 1)
+        if origem.isdigit() and destino.isdigit():
+            trechos.append((int(origem), int(destino)))
+    return trechos
+
+
+def codificar_trechos(trechos):
+    return ";".join(f"{origem}-{destino}" for origem, destino in trechos)
+
+
+def valores_recarga_padrao():
+    return [Decimal("10.00"), Decimal("20.00"), Decimal("50.00"), Decimal("100.00")]
+
+
+def endpoint_do_dispositivo(tipo):
+    return {
+        "admin": "admin_home",
+        "catraca": "catraca",
+        "usuario": "usuario_meu_cartao",
+    }[tipo]
+
+
+def status_cartao_filter(status):
+    return "Ativo" if status == "ativo" else "Bloqueado"
+PY
+
+cat > utils/migrate.py <<'PY'
+import sqlite3
+from datetime import timedelta
+
+from .database import get_db
+from .helpers import agora_formatado, gerar_token_usuario
+from .config import CONFIG_PADRAO, DISPOSITIVOS_PADRAO, ESTACOES_PADRAO, DATABASE
+
+
+def colunas_tabela(db, tabela):
+    return {coluna[1] for coluna in db.execute(f"PRAGMA table_info({tabela})").fetchall()}
+
+
+def garantir_coluna(db, tabela, coluna, definicao):
+    if coluna not in colunas_tabela(db, tabela):
+        db.execute(f"ALTER TABLE {tabela} ADD COLUMN {definicao}")
+
+
+def migrar_cartoes_antigos(db):
+    cartoes = db.execute(
+        """
+        SELECT id, usuario_id, codigo_publico, nome_passageiro, data_criacao, criado_em
+        FROM cartoes
+        ORDER BY id
+        """
+    ).fetchall()
+    for cartao in cartoes:
+        criado_em = cartao["criado_em"] or cartao["data_criacao"] or agora_formatado()
+        usuario_id = cartao["usuario_id"]
+        if not usuario_id:
+            token = gerar_token_usuario(db)
+            cursor = db.execute(
+                """
+                INSERT INTO usuarios (nome, token_usuario, criado_em, ativo)
+                VALUES (?, ?, ?, 1)
+                """,
+                (cartao["nome_passageiro"], token, criado_em),
+            )
+            usuario_id = cursor.lastrowid
+
+        codigo_publico = cartao["codigo_publico"] or str(cartao["id"])
+        db.execute(
+            """
+            UPDATE cartoes
+            SET usuario_id = ?, codigo_publico = ?, criado_em = COALESCE(criado_em, data_criacao)
+            WHERE id = ?
+            """,
+            (usuario_id, codigo_publico, cartao["id"]),
+        )
+
+
+def migrar_dispositivos_antigos(db):
+    dispositivos = db.execute(
+        "SELECT id, tipo, cartao_id, usuario_id FROM dispositivos"
+    ).fetchall()
+    for dispositivo in dispositivos:
+        if dispositivo["usuario_id"] or not dispositivo["cartao_id"]:
+            continue
+        cartao = db.execute(
+            "SELECT usuario_id FROM cartoes WHERE id = ?",
+            (dispositivo["cartao_id"],),
+        ).fetchone()
+        if cartao:
+            db.execute(
+                "UPDATE dispositivos SET usuario_id = ? WHERE id = ?",
+                (cartao["usuario_id"], dispositivo["id"]),
+            )
+
+
+def limpar_historico_expirado(db=None):
+    from .config import dias_retencao_recargas, horas_retencao_historico
+    from .helpers import agora_dt, formatar_data
+
+    banco = db or get_db()
+    agora = formatar_data(agora_dt())
+    corte = formatar_data(agora_dt() - timedelta(hours=horas_retencao_historico(db=banco)))
+    banco.execute(
+        """
+        DELETE FROM passagens
+        WHERE (expira_em IS NOT NULL AND expira_em < ?)
+           OR (expira_em IS NULL AND data_hora < ?)
+        """,
+        (agora, corte),
+    )
+    corte_recargas = formatar_data(
+        agora_dt() - timedelta(days=dias_retencao_recargas(db=banco))
+    )
+    banco.execute(
+        """
+        DELETE FROM recargas
+        WHERE (expira_em IS NOT NULL AND expira_em < ?)
+           OR (expira_em IS NULL AND data_hora < ?)
+        """,
+        (agora, corte_recargas),
+    )
+
+
+def init_db():
+    with sqlite3.connect(DATABASE) as db:
+        db.row_factory = sqlite3.Row
+        db.execute("PRAGMA foreign_keys=OFF")
+        db.execute("PRAGMA journal_mode=WAL")
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL,
+                token_usuario TEXT NOT NULL UNIQUE,
+                criado_em TEXT NOT NULL,
+                ativo INTEGER NOT NULL DEFAULT 1 CHECK (ativo IN (0, 1))
+            )
+            """
+        )
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS cartoes (
+                id INTEGER PRIMARY KEY,
+                usuario_id INTEGER,
+                codigo_publico TEXT,
+                nome_passageiro TEXT NOT NULL,
+                saldo REAL NOT NULL DEFAULT 0 CHECK (saldo >= 0),
+                status TEXT NOT NULL DEFAULT 'ativo'
+                    CHECK (status IN ('ativo', 'bloqueado')),
+                data_criacao TEXT NOT NULL,
+                criado_em TEXT,
+                atualizado_em TEXT
+            )
+            """
+        )
+        garantir_coluna(db, "cartoes", "usuario_id", "usuario_id INTEGER")
+        garantir_coluna(db, "cartoes", "codigo_publico", "codigo_publico TEXT")
+        garantir_coluna(db, "cartoes", "criado_em", "criado_em TEXT")
+        garantir_coluna(db, "cartoes", "atualizado_em", "atualizado_em TEXT")
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS estacoes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome TEXT NOT NULL UNIQUE,
+                regiao TEXT,
+                ativa INTEGER NOT NULL DEFAULT 1 CHECK (ativa IN (0, 1))
+            )
+            """
+        )
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS passagens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cartao_id INTEGER,
+                cartao_digitado TEXT,
+                origem_id INTEGER,
+                destino_id INTEGER,
+                data_hora TEXT NOT NULL,
+                status TEXT NOT NULL CHECK (status IN ('aprovado', 'negado')),
+                motivo TEXT NOT NULL,
+                valor_cobrado REAL NOT NULL DEFAULT 0,
+                expira_em TEXT
+            )
+            """
+        )
+        garantir_coluna(db, "passagens", "origem_id", "origem_id INTEGER")
+        garantir_coluna(db, "passagens", "destino_id", "destino_id INTEGER")
+        garantir_coluna(db, "passagens", "expira_em", "expira_em TEXT")
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS configuracoes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                chave TEXT NOT NULL UNIQUE,
+                valor TEXT NOT NULL
+            )
+            """
+        )
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS recargas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                cartao_id INTEGER NOT NULL,
+                valor REAL NOT NULL,
+                saldo_anterior REAL NOT NULL,
+                saldo_novo REAL NOT NULL,
+                data_hora TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'confirmada',
+                expira_em TEXT,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+                FOREIGN KEY (cartao_id) REFERENCES cartoes(id)
+            )
+            """
+        )
+        garantir_coluna(db, "recargas", "expira_em", "expira_em TEXT")
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS rotas_viagem (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                cartao_id INTEGER NOT NULL,
+                criado_em TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'planejada'
+                    CHECK (status IN ('planejada', 'cancelada', 'concluida')),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+                FOREIGN KEY (cartao_id) REFERENCES cartoes(id)
+            )
+            """
+        )
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS trechos_viagem (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                rota_id INTEGER NOT NULL,
+                origem_id INTEGER NOT NULL,
+                destino_id INTEGER NOT NULL,
+                ordem INTEGER NOT NULL,
+                valor REAL NOT NULL DEFAULT 0,
+                FOREIGN KEY (rota_id) REFERENCES rotas_viagem(id) ON DELETE CASCADE,
+                FOREIGN KEY (origem_id) REFERENCES estacoes(id),
+                FOREIGN KEY (destino_id) REFERENCES estacoes(id)
+            )
+            """
+        )
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS dispositivos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nome_dispositivo TEXT NOT NULL,
+                tipo TEXT NOT NULL CHECK (tipo IN ('catraca', 'usuario', 'admin')),
+                token_acesso TEXT NOT NULL UNIQUE,
+                ativo INTEGER NOT NULL DEFAULT 1 CHECK (ativo IN (0, 1)),
+                cartao_id INTEGER,
+                usuario_id INTEGER,
+                estacao_id INTEGER
+            )
+            """
+        )
+        garantir_coluna(db, "dispositivos", "cartao_id", "cartao_id INTEGER")
+        garantir_coluna(db, "dispositivos", "usuario_id", "usuario_id INTEGER")
+        garantir_coluna(db, "dispositivos", "estacao_id", "estacao_id INTEGER")
+
+        for chave, valor in CONFIG_PADRAO.items():
+            db.execute(
+                "INSERT OR IGNORE INTO configuracoes (chave, valor) VALUES (?, ?)",
+                (chave, valor),
+            )
+
+        for nome, regiao in ESTACOES_PADRAO:
+            db.execute(
+                "INSERT OR IGNORE INTO estacoes (nome, regiao, ativa) VALUES (?, ?, 1)",
+                (nome, regiao),
+            )
+
+        migrar_cartoes_antigos(db)
+        migrar_dispositivos_antigos(db)
+
+        terminal = db.execute(
+            "SELECT id FROM estacoes WHERE nome = 'Terminal Central'"
+        ).fetchone()
+        estacao_padrao_id = terminal["id"] if terminal else None
+        for nome, tipo, token in DISPOSITIVOS_PADRAO:
+            db.execute(
+                """
+                INSERT OR IGNORE INTO dispositivos (
+                    nome_dispositivo, tipo, token_acesso, ativo, estacao_id
+                )
+                VALUES (?, ?, ?, 1, ?)
+                """,
+                (nome, tipo, token, estacao_padrao_id if tipo == "catraca" else None),
+            )
+
+        db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_cartoes_codigo_publico ON cartoes(codigo_publico)"
+        )
+        db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_passagens_expira_em ON passagens(expira_em)"
+        )
+        db.execute(
+            "CREATE INDEX IF NOT EXISTS idx_recargas_expira_em ON recargas(expira_em)"
+        )
+        limpar_historico_expirado(db)
+PY
+
+cat > utils/queries.py <<'PY'
+from flask import g
+
+from .database import get_db
+from .helpers import agora_formatado
+from .config import expira_em_formatado, recarga_expira_em_formatado, valor_passagem_atual
+
+
+def estacoes_ativas():
+    return get_db().execute(
+        "SELECT id, nome, regiao FROM estacoes WHERE ativa = 1 ORDER BY nome"
+    ).fetchall()
+
+
+def estacao_padrao_id():
+    row = get_db().execute(
+        """
+        SELECT id FROM estacoes
+        WHERE ativa = 1
+        ORDER BY CASE WHEN nome = 'Terminal Central' THEN 0 ELSE 1 END, nome
+        LIMIT 1
+        """
+    ).fetchone()
+    return row["id"] if row else None
+
+
+def estacao_catraca_atual(acesso=None):
+    estacao_id = acesso.get("estacao_id") if acesso else None
+    if not estacao_id:
+        estacao_id = estacao_padrao_id()
+    return get_db().execute(
+        "SELECT id, nome, regiao FROM estacoes WHERE id = ?",
+        (estacao_id,),
+    ).fetchone()
+
+
+def cartao_do_usuario(usuario_id):
+    return get_db().execute(
+        """
+        SELECT
+            cartoes.*,
+            usuarios.nome AS nome_usuario,
+            usuarios.token_usuario
+        FROM cartoes
+        JOIN usuarios ON usuarios.id = cartoes.usuario_id
+        WHERE cartoes.usuario_id = ?
+        ORDER BY cartoes.id
+        LIMIT 1
+        """,
+        (usuario_id,),
+    ).fetchone()
+
+
+def rota_planejada_ativa(usuario_id, cartao_id):
+    return get_db().execute(
+        """
+        SELECT * FROM rotas_viagem
+        WHERE usuario_id = ? AND cartao_id = ? AND status = 'planejada'
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (usuario_id, cartao_id),
+    ).fetchone()
+
+
+def trechos_da_rota(rota_id):
+    return get_db().execute(
+        """
+        SELECT
+            trechos_viagem.*,
+            origem.nome AS origem_nome,
+            destino.nome AS destino_nome
+        FROM trechos_viagem
+        JOIN estacoes origem ON origem.id = trechos_viagem.origem_id
+        JOIN estacoes destino ON destino.id = trechos_viagem.destino_id
+        WHERE rota_id = ?
+        ORDER BY ordem
+        """,
+        (rota_id,),
+    ).fetchall()
+
+
+def trecho_compativel_com_estacao(cartao, estacao_id):
+    rota = rota_planejada_ativa(cartao["usuario_id"], cartao["id"])
+    if not rota or not estacao_id:
+        return None, None
+
+    trecho = get_db().execute(
+        """
+        SELECT * FROM trechos_viagem
+        WHERE rota_id = ? AND origem_id = ?
+        ORDER BY ordem
+        LIMIT 1
+        """,
+        (rota["id"], estacao_id),
+    ).fetchone()
+    return rota, trecho
+
+
+def cartao_usuario_atual_ou_erro(usuario_id):
+    if not usuario_id:
+        return None, "Este acesso de usuario ainda nao foi vinculado a um passageiro."
+    cartao = cartao_do_usuario(usuario_id)
+    if not cartao:
+        return None, "Nenhum cartao foi encontrado para este usuario."
+    return cartao, None
+
+
+def gerar_id_cartao(db):
+    row = db.execute(
+        """
+        SELECT
+            CASE
+                WHEN MAX(id) IS NULL OR MAX(id) < 1000 THEN 1001
+                ELSE MAX(id) + 1
+            END AS proximo_id
+        FROM cartoes
+        """
+    ).fetchone()
+    return int(row["proximo_id"])
+
+
+def registrar_passagem(
+    db,
+    cartao_id,
+    cartao_digitado,
+    status,
+    motivo,
+    valor_cobrado,
+    origem_id=None,
+    destino_id=None,
+):
+    db.execute(
+        """
+        INSERT INTO passagens (
+            cartao_id, cartao_digitado, origem_id, destino_id, data_hora,
+            status, motivo, valor_cobrado, expira_em
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            cartao_id,
+            cartao_digitado,
+            origem_id,
+            destino_id,
+            agora_formatado(),
+            status,
+            motivo,
+            float(valor_cobrado),
+            expira_em_formatado(),
+        ),
+    )
+
+
+def registrar_recarga(db, usuario_id, cartao_id, valor, saldo_anterior, saldo_novo):
+    db.execute(
+        """
+        INSERT INTO recargas (
+            usuario_id, cartao_id, valor, saldo_anterior, saldo_novo,
+            data_hora, status, expira_em
+        )
+        VALUES (?, ?, ?, ?, ?, ?, 'confirmada', ?)
+        """,
+        (
+            usuario_id,
+            cartao_id,
+            float(valor),
+            float(saldo_anterior),
+            float(saldo_novo),
+            agora_formatado(),
+            recarga_expira_em_formatado(),
+        ),
+    )
+PY
+
+cat > utils/validation.py <<'PY'
+import sqlite3
+from decimal import Decimal
+
+from .database import get_db
+from .helpers import extrair_codigo_publico
+from .queries import estacao_catraca_atual, trecho_compativel_com_estacao, registrar_passagem
+from .config import valor_passagem_atual
+from .migrate import limpar_historico_expirado
+
+
+def _negado(cartao_id, cartao_digitado, motivo, origem_id, destino_id=None):
+    return {
+        "aprovado": False,
+        "titulo": "Entrada negada.",
+        "mensagem": motivo,
+        "codigo_publico": None,
+    }
+
+
+def _aprovado(codigo_publico):
+    return {
+        "aprovado": True,
+        "titulo": "Entrada aprovada.",
+        "mensagem": "Boa viagem!",
+        "codigo_publico": codigo_publico,
+    }
+
+
+def validar_entrada(cartao_digitado):
+    db = get_db()
+    token = extrair_codigo_publico(cartao_digitado)
+    estacao = estacao_catraca_atual()
+    origem_id = estacao["id"] if estacao else None
+    valor_passagem = valor_passagem_atual()
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        if not token:
+            registrar_passagem(
+                db,
+                None,
+                cartao_digitado,
+                "negado",
+                "Token privado nao informado.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+            )
+            db.execute("COMMIT")
+            return _negado(None, cartao_digitado, "Token privado nao informado.", origem_id)
+
+        cartao = db.execute(
+            """
+            SELECT
+                cartoes.*,
+                usuarios.nome AS nome_usuario
+            FROM cartoes
+            JOIN usuarios ON usuarios.id = cartoes.usuario_id
+            WHERE cartoes.codigo_publico = ?
+            """,
+            (token,),
+        ).fetchone()
+
+        if cartao is None:
+            registrar_passagem(
+                db,
+                None,
+                cartao_digitado,
+                "negado",
+                "Cartao nao encontrado.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+            )
+            db.execute("COMMIT")
+            return _negado(None, cartao_digitado, "Cartao nao encontrado.", origem_id)
+
+        destino_id = None
+        rota, trecho = trecho_compativel_com_estacao(cartao, origem_id)
+        if rota and not trecho:
+            registrar_passagem(
+                db,
+                cartao["id"],
+                cartao_digitado,
+                "negado",
+                "Estacao fora da rota planejada.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+            )
+            db.execute("COMMIT")
+            return {
+                "aprovado": False,
+                "titulo": "Entrada negada.",
+                "mensagem": "Estacao fora da rota planejada.",
+                "codigo_publico": cartao["codigo_publico"],
+            }
+        if trecho:
+            destino_id = trecho["destino_id"]
+
+        saldo_atual = Decimal(str(cartao["saldo"])).quantize(Decimal("0.01"))
+        if cartao["status"] != "ativo":
+            registrar_passagem(
+                db,
+                cartao["id"],
+                cartao_digitado,
+                "negado",
+                "Cartao bloqueado.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+                destino_id=destino_id,
+            )
+            db.execute("COMMIT")
+            return {
+                "aprovado": False,
+                "titulo": "Entrada negada.",
+                "mensagem": "Cartao bloqueado.",
+                "codigo_publico": cartao["codigo_publico"],
+            }
+
+        if saldo_atual < valor_passagem:
+            registrar_passagem(
+                db,
+                cartao["id"],
+                cartao_digitado,
+                "negado",
+                "Saldo insuficiente.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+                destino_id=destino_id,
+            )
+            db.execute("COMMIT")
+            return {
+                "aprovado": False,
+                "titulo": "Entrada negada.",
+                "mensagem": "Saldo insuficiente.",
+                "codigo_publico": cartao["codigo_publico"],
+            }
+
+        novo_saldo = saldo_atual - valor_passagem
+        db.execute("UPDATE cartoes SET saldo = ? WHERE id = ?", (float(novo_saldo), cartao["id"]))
+        registrar_passagem(
+            db,
+            cartao["id"],
+            cartao_digitado,
+            "aprovado",
+            "Entrada liberada.",
+            valor_passagem,
+            origem_id=origem_id,
+            destino_id=destino_id,
+        )
+        limpar_historico_expirado(db)
+        db.execute("COMMIT")
+        response = _aprovado(cartao["codigo_publico"])
+        response["codigo_publico"] = cartao["codigo_publico"]
+        return response
+    except sqlite3.Error:
+        db.execute("ROLLBACK")
+        return {"aprovado": False, "titulo": "Entrada negada.", "mensagem": "Falha ao validar. Tente novamente."}
+
+
+def validar_entrada_por_token_privado(token_privado):
+    db = get_db()
+    token = (token_privado or "").strip()
+    estacao = estacao_catraca_atual()
+    origem_id = estacao["id"] if estacao else None
+    valor_passagem = valor_passagem_atual()
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        if not token:
+            registrar_passagem(
+                db,
+                None,
+                token,
+                "negado",
+                "Token privado nao informado.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+            )
+            db.execute("COMMIT")
+            return _negado(None, token, "Token privado nao informado.", origem_id)
+
+        cartao = db.execute(
+            """
+            SELECT
+                cartoes.*,
+                usuarios.nome AS nome_usuario,
+                usuarios.token_usuario
+            FROM cartoes
+            JOIN usuarios ON usuarios.id = cartoes.usuario_id
+            WHERE usuarios.token_usuario = ?
+            """,
+            (token,),
+        ).fetchone()
+
+        if cartao is None:
+            registrar_passagem(
+                db,
+                None,
+                token,
+                "negado",
+                "Cartao nao encontrado.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+            )
+            db.execute("COMMIT")
+            return _negado(None, token, "Cartao nao encontrado.", origem_id)
+
+        destino_id = None
+        rota, trecho = trecho_compativel_com_estacao(cartao, origem_id)
+        if rota and not trecho:
+            registrar_passagem(
+                db,
+                cartao["id"],
+                token,
+                "negado",
+                "Estacao fora da rota planejada.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+            )
+            db.execute("COMMIT")
+            return {
+                "aprovado": False,
+                "titulo": "Entrada negada.",
+                "mensagem": "Estacao fora da rota planejada.",
+                "codigo_publico": cartao["codigo_publico"],
+            }
+        if trecho:
+            destino_id = trecho["destino_id"]
+
+        saldo_atual = Decimal(str(cartao["saldo"])).quantize(Decimal("0.01"))
+        if cartao["status"] != "ativo":
+            registrar_passagem(
+                db,
+                cartao["id"],
+                token,
+                "negado",
+                "Cartao bloqueado.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+                destino_id=destino_id,
+            )
+            db.execute("COMMIT")
+            return {
+                "aprovado": False,
+                "titulo": "Entrada negada.",
+                "mensagem": "Cartao bloqueado.",
+                "codigo_publico": cartao["codigo_publico"],
+            }
+
+        if saldo_atual < valor_passagem:
+            registrar_passagem(
+                db,
+                cartao["id"],
+                token,
+                "negado",
+                "Saldo insuficiente.",
+                Decimal("0.00"),
+                origem_id=origem_id,
+                destino_id=destino_id,
+            )
+            db.execute("COMMIT")
+            return {
+                "aprovado": False,
+                "titulo": "Entrada negada.",
+                "mensagem": "Saldo insuficiente.",
+                "codigo_publico": cartao["codigo_publico"],
+            }
+
+        novo_saldo = saldo_atual - valor_passagem
+        db.execute("UPDATE cartoes SET saldo = ? WHERE id = ?", (float(novo_saldo), cartao["id"]))
+        registrar_passagem(
+            db,
+            cartao["id"],
+            token,
+            "aprovado",
+            "Entrada liberada.",
+            valor_passagem,
+            origem_id=origem_id,
+            destino_id=destino_id,
+        )
+        limpar_historico_expirado(db)
+        db.execute("COMMIT")
+        response = _aprovado(cartao["codigo_publico"])
+        response["codigo_publico"] = cartao["codigo_publico"]
+        return response
+    except sqlite3.Error:
+        db.execute("ROLLBACK")
+        return {"aprovado": False, "titulo": "Entrada negada.", "mensagem": "Falha ao validar. Tente novamente."}
+PY
+
+cat > routes/__init__.py <<'PY'
+from . import admin, usuario, catraca, dispositivos, main
+PY
+
+cat > routes/main.py <<'PY'
+from flask import flash, redirect, render_template, request, url_for
+
+from app import app
+from utils.auth import buscar_acesso_por_credenciais, buscar_acesso, acesso_requerido
+from utils.helpers import endpoint_do_dispositivo
+
+
+@app.get("/")
+@app.get("/login")
+def login():
+    return render_template("login.html")
+
+
+@app.post("/login")
+def login_submit():
+    usuario = request.form.get("usuario", "").strip()
+    senha = request.form.get("senha", "").strip()
+
+    if not usuario or not senha:
+        flash("Informe usuário e senha.")
+        return redirect(url_for("login"))
+
+    acesso = buscar_acesso_por_credenciais(usuario, senha)
+    if not acesso:
+        flash("Usuário ou senha inválidos.")
+        return redirect(url_for("login"))
+
+    endpoint = endpoint_do_dispositivo(acesso["tipo"])
+    return redirect(url_for(endpoint, token=acesso["token_acesso"]))
+
+
+@app.get("/cartao")
+@acesso_requerido("usuario")
+def visualizar_cartao():
+    if app and hasattr(request, "values"):
+        pass
+    if getattr(request, "values", None):
+        pass
+
+    from flask import g
+
+    if g.acesso["tipo"] == "usuario":
+        return redirect(url_for("usuario_meu_cartao", token=g.token_acesso))
+    return redirect(url_for("admin_cartoes", token=g.token_acesso))
+
+
+@app.get("/meu/<token_usuario>")
+def acesso_rapido_usuario(token_usuario):
+    acesso = buscar_acesso(token_usuario)
+    if not acesso or acesso["tipo"] != "usuario":
+        return (
+            render_template(
+                "acesso_negado.html",
+                titulo="Acesso nao autorizado",
+                mensagem="Use um link privado valido do passageiro.",
+            ),
+            401,
+        )
+    return redirect(url_for("usuario_meu_cartao", token=token_usuario))
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+PY
+
+cat > routes/admin.py <<'PY'
+from flask import flash, redirect, render_template, request, url_for
+
+from app import app
+from utils.auth import acesso_requerido
+from utils.config import (
+    CONFIG_PADRAO,
+    config_bool,
+    dias_retencao_recargas,
+    horas_retencao_historico,
+    set_config,
+    valor_maximo_recarga,
+    valor_minimo_recarga,
+    valor_passagem_atual,
+)
+from utils.database import get_db
+from utils.helpers import gerar_token_usuario, parse_int_positivo, parse_valor
+from utils.migrate import limpar_historico_expirado
+from utils.queries import gerar_id_cartao
+
+
+@app.get("/admin")
+@acesso_requerido("admin")
+def admin_home():
+    limpar_historico_expirado()
+    db = get_db()
+    contadores = {
+        "cartoes": db.execute("SELECT COUNT(*) AS total FROM cartoes").fetchone()["total"],
+        "usuarios": db.execute("SELECT COUNT(*) AS total FROM usuarios").fetchone()["total"],
+        "recargas": db.execute("SELECT COUNT(*) AS total FROM recargas").fetchone()["total"],
+        "estacoes": db.execute(
+            "SELECT COUNT(*) AS total FROM estacoes WHERE ativa = 1"
+        ).fetchone()["total"],
+        "historico": db.execute("SELECT COUNT(*) AS total FROM passagens").fetchone()["total"],
+    }
+    return render_template(
+        "index.html",
+        valor_passagem=valor_passagem_atual(),
+        retencao_horas=horas_retencao_historico(),
+        contadores=contadores,
+    )
+
+
+@app.route("/criar-cartao", methods=["GET", "POST"])
+@acesso_requerido("admin")
+def criar_cartao():
+    erro = None
+    cartao_criado = None
+    dados_form = {"nome_passageiro": "", "saldo": "20,00", "status": "ativo"}
+
+    if request.method == "POST":
+        dados_form = {
+            "nome_passageiro": request.form.get("nome_passageiro", "").strip(),
+            "saldo": request.form.get("saldo", "").strip(),
+            "status": request.form.get("status", "ativo"),
+        }
+        saldo = parse_valor(dados_form["saldo"])
+
+        if not dados_form["nome_passageiro"]:
+            erro = "Informe o nome ficticio do passageiro."
+        elif saldo is None:
+            erro = "Informe um saldo inicial valido."
+        elif dados_form["status"] not in {"ativo", "bloqueado"}:
+            erro = "Informe um status valido para o cartao."
+        else:
+            db = get_db()
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                token_usuario = gerar_token_usuario(db)
+                criado_em = __import__("utils.helpers").helpers.agora_formatado()
+                usuario_cursor = db.execute(
+                    """
+                    INSERT INTO usuarios (nome, token_usuario, criado_em, ativo)
+                    VALUES (?, ?, ?, 1)
+                    """,
+                    (dados_form["nome_passageiro"], token_usuario, criado_em),
+                )
+                usuario_id = usuario_cursor.lastrowid
+                cartao_id = gerar_id_cartao(db)
+                codigo_publico = str(cartao_id)
+                db.execute(
+                    """
+                    INSERT INTO cartoes (
+                        id, usuario_id, codigo_publico, nome_passageiro,
+                        saldo, status, data_criacao, criado_em
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        cartao_id,
+                        usuario_id,
+                        codigo_publico,
+                        dados_form["nome_passageiro"],
+                        float(saldo),
+                        dados_form["status"],
+                        criado_em,
+                        criado_em,
+                    ),
+                )
+                db.execute(
+                    """
+                    INSERT INTO dispositivos (
+                        nome_dispositivo, tipo, token_acesso, ativo,
+                        usuario_id, cartao_id
+                    ) VALUES (?, 'usuario', ?, 1, ?, ?)
+                    """,
+                    (
+                        dados_form["nome_passageiro"],
+                        token_usuario,
+                        usuario_id,
+                        cartao_id,
+                    ),
+                )
+                db.execute("COMMIT")
+                cartao_criado = db.execute(
+                    """
+                    SELECT
+                        cartoes.*,
+                        usuarios.nome AS nome_usuario,
+                        usuarios.token_usuario
+                    FROM cartoes
+                    JOIN usuarios ON usuarios.id = cartoes.usuario_id
+                    WHERE cartoes.id = ?
+                    """,
+                    (cartao_id,),
+                ).fetchone()
+                dados_form = {"nome_passageiro": "", "saldo": "20,00", "status": "ativo"}
+            except Exception:
+                db.execute("ROLLBACK")
+                erro = "Nao foi possivel criar o cartao. Tente novamente."
+
+    return render_template(
+        "criar_cartao.html",
+        erro=erro,
+        cartao_criado=cartao_criado,
+        dados_form=dados_form,
+    )
+
+
+@app.get("/admin/historico")
+@app.get("/historico")
+@acesso_requerido("admin")
+def historico():
+    limpar_historico_expirado()
+    passagens = get_db().execute(
+        """
+        SELECT
+            passagens.id,
+            passagens.cartao_id,
+            passagens.cartao_digitado,
+            passagens.data_hora,
+            passagens.status,
+            passagens.motivo,
+            passagens.valor_cobrado,
+            passagens.expira_em,
+            cartoes.codigo_publico,
+            usuarios.nome AS nome_passageiro,
+            origem.nome AS origem_nome,
+            destino.nome AS destino_nome
+        FROM passagens
+        LEFT JOIN cartoes ON cartoes.id = passagens.cartao_id
+        LEFT JOIN usuarios ON usuarios.id = cartoes.usuario_id
+        LEFT JOIN estacoes origem ON origem.id = passagens.origem_id
+        LEFT JOIN estacoes destino ON destino.id = passagens.destino_id
+        ORDER BY passagens.id DESC
+        LIMIT 100
+        """
+    ).fetchall()
+    return render_template(
+        "historico.html",
+        passagens=passagens,
+        retencao_horas=horas_retencao_historico(),
+    )
+
+
+@app.get("/admin/recargas")
+@acesso_requerido("admin")
+def admin_recargas():
+    limpar_historico_expirado()
+    recargas = get_db().execute(
+        """
+        SELECT
+            recargas.*,
+            cartoes.codigo_publico,
+            usuarios.nome AS nome_passageiro
+        FROM recargas
+        JOIN cartoes ON cartoes.id = recargas.cartao_id
+        JOIN usuarios ON usuarios.id = recargas.usuario_id
+        ORDER BY recargas.id DESC
+        LIMIT 200
+        """
+    ).fetchall()
+    return render_template(
+        "admin_recargas.html",
+        recargas=recargas,
+        retencao_dias=dias_retencao_recargas(),
+    )
+
+
+@app.get("/admin/cartoes")
+@acesso_requerido("admin")
+def admin_cartoes():
+    cartoes = get_db().execute(
+        """
+        SELECT
+            cartoes.*,
+            usuarios.nome AS nome_usuario,
+            usuarios.token_usuario,
+            usuarios.ativo AS usuario_ativo
+        FROM cartoes
+        JOIN usuarios ON usuarios.id = cartoes.usuario_id
+        ORDER BY cartoes.id DESC
+        """
+    ).fetchall()
+    links_usuario = {
+        cartao["id"]: url_for(
+            "usuario_meu_cartao", token=cartao["token_usuario"], _external=True
+        )
+        for cartao in cartoes
+    }
+    return render_template("admin_cartoes.html", cartoes=cartoes, links_usuario=links_usuario)
+
+
+@app.post("/admin/cartoes/<int:cartao_id>/status")
+@acesso_requerido("admin")
+def admin_alterar_status_cartao(cartao_id):
+    status = request.form.get("status", "")
+    if status not in {"ativo", "bloqueado"}:
+        flash("Status invalido.")
+    else:
+        get_db().execute("UPDATE cartoes SET status = ? WHERE id = ?", (status, cartao_id))
+        flash("Status do cartao atualizado.")
+    return redirect(url_for("admin_cartoes", token=request.values.get("token", "")))
+
+
+@app.route("/admin/estacoes", methods=["GET", "POST"])
+@acesso_requerido("admin")
+def admin_estacoes():
+    erro = None
+    if request.method == "POST":
+        nome = request.form.get("nome", "").strip()
+        regiao = request.form.get("regiao", "").strip()
+        if not nome:
+            erro = "Informe o nome da estacao."
+        else:
+            try:
+                get_db().execute(
+                    "INSERT INTO estacoes (nome, regiao, ativa) VALUES (?, ?, 1)",
+                    (nome, regiao),
+                )
+                flash("Estacao cadastrada.")
+                return redirect(url_for("admin_estacoes", token=request.values.get("token", "")))
+            except Exception:
+                erro = "Ja existe uma estacao com esse nome."
+    estacoes = get_db().execute("SELECT * FROM estacoes ORDER BY ativa DESC, nome").fetchall()
+    return render_template("admin_estacoes.html", estacoes=estacoes, erro=erro)
+
+
+@app.post("/admin/estacoes/<int:estacao_id>/alternar")
+@acesso_requerido("admin")
+def admin_alternar_estacao(estacao_id):
+    estacao = get_db().execute("SELECT id, ativa FROM estacoes WHERE id = ?", (estacao_id,)).fetchone()
+    if not estacao:
+        flash("Estacao nao encontrada.")
+    else:
+        get_db().execute(
+            "UPDATE estacoes SET ativa = ? WHERE id = ?",
+            (0 if estacao["ativa"] else 1, estacao_id),
+        )
+        flash("Status da estacao atualizado.")
+    return redirect(url_for("admin_estacoes", token=request.values.get("token", "")))
+
+
+@app.route("/admin/configuracoes", methods=["GET", "POST"])
+@acesso_requerido("admin")
+def admin_configuracoes():
+    erro = None
+    if request.method == "POST":
+        retencao = request.form.get("historico_retencao_horas", "").strip()
+        retencao_recargas = request.form.get("historico_recargas_retencao_dias", "").strip()
+        passagem = parse_valor(request.form.get("valor_passagem_padrao", ""))
+        minimo_recarga = parse_valor(request.form.get("valor_minimo_recarga", ""))
+        maximo_recarga = parse_valor(request.form.get("valor_maximo_recarga", ""))
+        if parse_int_positivo(retencao, 0) <= 0:
+            erro = "Informe uma retencao em horas maior que zero."
+        elif parse_int_positivo(retencao_recargas, 0) <= 0:
+            erro = "Informe uma retencao de recargas em dias maior que zero."
+        elif passagem is None:
+            erro = "Informe um valor de passagem valido."
+        elif minimo_recarga is None or minimo_recarga <= 0:
+            erro = "Informe um valor minimo de recarga valido."
+        elif maximo_recarga is None or maximo_recarga <= 0:
+            erro = "Informe um valor maximo de recarga valido."
+        elif minimo_recarga > maximo_recarga:
+            erro = "O valor minimo de recarga nao pode ser maior que o maximo."
+        else:
+            set_config("historico_retencao_horas", parse_int_positivo(retencao, 24))
+            set_config(
+                "historico_recargas_retencao_dias",
+                parse_int_positivo(retencao_recargas, 30),
+            )
+            set_config("valor_passagem_padrao", str(passagem))
+            set_config("valor_minimo_recarga", str(minimo_recarga))
+            set_config("valor_maximo_recarga", str(maximo_recarga))
+            set_config(
+                "permitir_download_pdf",
+                "true" if request.form.get("permitir_download_pdf") == "on" else "false",
+            )
+            set_config(
+                "exibir_saldo_no_pdf",
+                "true" if request.form.get("exibir_saldo_no_pdf") == "on" else "false",
+            )
+            limpar_historico_expirado()
+            flash("Configuracoes atualizadas.")
+            return redirect(url_for("admin_configuracoes", token=request.values.get("token", "")))
+
+    return render_template(
+        "admin_configuracoes.html",
+        erro=erro,
+        retencao_horas=horas_retencao_historico(),
+        retencao_recargas_dias=dias_retencao_recargas(),
+        valor_passagem=valor_passagem_atual(),
+        minimo_recarga=valor_minimo_recarga(),
+        maximo_recarga=valor_maximo_recarga(),
+        permitir_pdf=config_bool("permitir_download_pdf", CONFIG_PADRAO["permitir_download_pdf"]),
+        exibir_saldo_pdf=config_bool("exibir_saldo_no_pdf", CONFIG_PADRAO["exibir_saldo_no_pdf"]),
+    )
+PY
+
+cat > routes/usuario.py <<'PY'
+from flask import flash, redirect, render_template, request, url_for
+
+from app import app
+from utils.auth import acesso_requerido
+from utils.config import (
+    CONFIG_PADRAO,
+    config_bool,
+    dias_retencao_recargas,
+    valor_minimo_recarga,
+    valor_maximo_recarga,
+    valor_passagem_atual,
+)
+from utils.helpers import (
+    codificar_trechos,
+    decodificar_trechos,
+    formatar_moeda,
+    parse_valor,
+    valores_recarga_padrao,
+)
+from utils.migrate import limpar_historico_expirado
+from utils.queries import (
+    cartao_do_usuario,
+    cartao_usuario_atual_ou_erro,
+    rota_planejada_ativa,
+    trechos_da_rota,
+    trechos_preview,
+)
+
+
+@app.get("/usuario/meu-cartao")
+@acesso_requerido("usuario")
+def usuario_meu_cartao():
+    cartao = None
+    erro = None
+    if not hasattr(__import__("flask").flask.g, "acesso") or not __import__("flask").flask.g.acesso.get("usuario_id"):
+        erro = "Este acesso de usuario ainda nao foi vinculado a um passageiro."
+    else:
+        cartao = cartao_do_usuario(__import__("flask").flask.g.acesso["usuario_id"])
+        if not cartao:
+            erro = "Nenhum cartao foi encontrado para este usuario."
+
+    return render_template(
+        "meu_cartao.html",
+        cartao=cartao,
+        erro=erro,
+        valor_passagem=valor_passagem_atual(),
+        permitir_pdf=config_bool("permitir_download_pdf", CONFIG_PADRAO["permitir_download_pdf"]),
+        link_rapido=(
+            url_for("acesso_rapido_usuario", token_usuario=cartao["token_usuario"], _external=True)
+            if cartao
+            else None
+        ),
+    )
+
+
+@app.route("/usuario/recarregar-cartao", methods=["GET", "POST"])
+@app.post("/usuario/recarregar-cartao/confirmar")
+@acesso_requerido("usuario")
+def usuario_recarregar_cartao():
+    cartao, erro = cartao_usuario_atual_ou_erro(__import__("flask").flask.g.acesso.get("usuario_id"))
+    sucesso = None
+    valor_escolhido = ""
+    minimo = valor_minimo_recarga()
+    maximo = valor_maximo_recarga()
+
+    if request.method == "POST" and cartao:
+        valor_escolhido = request.form.get("valor_recarga", "")
+        valor_texto = (
+            request.form.get("outro_valor", "")
+            if valor_escolhido == "outro"
+            else valor_escolhido
+        )
+        valor = parse_valor(valor_texto)
+
+        if valor is None or valor <= 0:
+            erro = "Informe um valor de recarga valido."
+        elif valor < minimo:
+            erro = f"O valor minimo de recarga e {formatar_moeda(minimo)}."
+        elif valor > maximo:
+            erro = f"O valor maximo de recarga e {formatar_moeda(maximo)}."
+        else:
+            from utils.database import get_db
+            from utils.queries import registrar_recarga
+            db = get_db()
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                cartao_atual = db.execute(
+                    "SELECT saldo FROM cartoes WHERE id = ? AND usuario_id = ?",
+                    (cartao["id"], cartao["usuario_id"]),
+                ).fetchone()
+                if not cartao_atual:
+                    erro = "Cartao nao encontrado para este usuario."
+                    db.execute("ROLLBACK")
+                else:
+                    saldo_anterior = __import__("decimal").Decimal(str(cartao_atual["saldo"])).quantize(__import__("decimal").Decimal("0.01"))
+                    saldo_novo = saldo_anterior + valor
+                    db.execute(
+                        """
+                        UPDATE cartoes
+                        SET saldo = ?, atualizado_em = ?
+                        WHERE id = ? AND usuario_id = ?
+                        """,
+                        (
+                            float(saldo_novo),
+                            __import__("utils.helpers").helpers.agora_formatado(),
+                            cartao["id"],
+                            cartao["usuario_id"],
+                        ),
+                    )
+                    registrar_recarga(
+                        db,
+                        cartao["usuario_id"],
+                        cartao["id"],
+                        valor,
+                        saldo_anterior,
+                        saldo_novo,
+                    )
+                    limpar_historico_expirado(db)
+                    db.execute("COMMIT")
+                    cartao = cartao_do_usuario(__import__("flask").flask.g.acesso["usuario_id"])
+                    sucesso = {
+                        "valor": valor,
+                        "saldo_anterior": saldo_anterior,
+                        "saldo_novo": saldo_novo,
+                    }
+            except Exception:
+                db.execute("ROLLBACK")
+                erro = "Nao foi possivel confirmar a recarga."
+
+    return render_template(
+        "recarregar_cartao.html",
+        cartao=cartao,
+        erro=erro,
+        sucesso=sucesso,
+        valores_recarga=valores_recarga_padrao(),
+        valor_escolhido=valor_escolhido,
+        minimo=minimo,
+        maximo=maximo,
+    )
+
+
+@app.get("/usuario/recargas")
+@acesso_requerido("usuario")
+def usuario_recargas():
+    limpar_historico_expirado()
+    cartao, erro = cartao_usuario_atual_ou_erro(__import__("flask").flask.g.acesso.get("usuario_id"))
+    recargas = []
+    if cartao:
+        recargas = __import__("utils.database").database.get_db().execute(
+            """
+            SELECT * FROM recargas
+            WHERE usuario_id = ? AND cartao_id = ?
+            ORDER BY id DESC
+            LIMIT 100
+            """,
+            (cartao["usuario_id"], cartao["id"]),
+        ).fetchall()
+    return render_template(
+        "usuario_recargas.html",
+        cartao=cartao,
+        erro=erro,
+        recargas=recargas,
+        retencao_dias=dias_retencao_recargas(),
+    )
+
+
+@app.get("/usuario/cartao/pdf")
+@acesso_requerido("usuario")
+def usuario_cartao_pdf():
+    if not config_bool("permitir_download_pdf", CONFIG_PADRAO["permitir_download_pdf"]):
+        return (
+            render_template(
+                "acesso_negado.html",
+                titulo="Download indisponivel",
+                mensagem="O download do cartao em PDF esta desativado pelo administrador.",
+            ),
+            403,
+        )
+
+    cartao, erro = cartao_usuario_atual_ou_erro(__import__("flask").flask.g.acesso.get("usuario_id"))
+    if not cartao:
+        return (
+            render_template(
+                "acesso_negado.html",
+                titulo="Cartao nao encontrado",
+                mensagem=erro,
+            ),
+            404,
+        )
+
+    from utils.pdf import gerar_pdf_cartao
+
+    pdf = gerar_pdf_cartao(
+        cartao,
+        exibir_saldo=config_bool("exibir_saldo_no_pdf", CONFIG_PADRAO["exibir_saldo_no_pdf"]),
+    )
+    nome_arquivo = f"cartao-{cartao['codigo_publico']}.pdf"
+    from flask import Response
+
+    return Response(
+        pdf,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={nome_arquivo}"},
+    )
+
+
+@app.route("/usuario/planejar-viagem", methods=["GET", "POST"])
+@acesso_requerido("usuario")
+def usuario_planejar_viagem():
+    cartao = cartao_do_usuario(__import__("flask").flask.g.acesso.get("usuario_id")) if __import__("flask").flask.g.acesso.get("usuario_id") else None
+    if not cartao:
+        return render_template(
+            "planejar_viagem.html",
+            erro="Vincule este acesso a um cartao antes de planejar viagens.",
+            cartao=None,
+            estacoes=[],
+            trechos=[],
+            trechos_serializados="",
+            valor_passagem=valor_passagem_atual(),
+        )
+
+    erro = None
+    trechos = decodificar_trechos(request.form.get("trechos", ""))
+    if request.method == "GET" and request.args.get("editar") == "atual":
+        rota_atual = rota_planejada_ativa(cartao["usuario_id"], cartao["id"])
+        if rota_atual:
+            trechos = [
+                (trecho["origem_id"], trecho["destino_id"])
+                for trecho in trechos_da_rota(rota_atual["id"])
+            ]
+    if request.method == "POST":
+        acao = request.form.get("acao")
+        indice_da_acao = ""
+        if acao and ":" in acao:
+            acao, indice_da_acao = acao.split(":", 1)
+        origem_id = request.form.get("origem_id", "")
+        destino_id = request.form.get("destino_id", "")
+        indice_texto = indice_da_acao or request.form.get("indice", "")
+
+        if acao == "adicionar":
+            if not origem_id.isdigit() or not destino_id.isdigit():
+                erro = "Selecione origem e destino."
+            elif origem_id == destino_id:
+                erro = "Origem e destino devem ser diferentes."
+            else:
+                trechos.append((int(origem_id), int(destino_id)))
+        elif acao == "remover":
+            if indice_texto.isdigit() and int(indice_texto) < len(trechos):
+                trechos.pop(int(indice_texto))
+        elif acao == "subir":
+            if indice_texto.isdigit():
+                indice = int(indice_texto)
+                if 0 < indice < len(trechos):
+                    trechos[indice - 1], trechos[indice] = trechos[indice], trechos[indice - 1]
+        elif acao == "descer":
+            if indice_texto.isdigit():
+                indice = int(indice_texto)
+                if 0 <= indice < len(trechos) - 1:
+                    trechos[indice + 1], trechos[indice] = trechos[indice], trechos[indice + 1]
+        elif acao == "limpar":
+            trechos = []
+        elif acao == "confirmar":
+            if not trechos:
+                erro = "Adicione pelo menos um trecho antes de confirmar."
+            else:
+                from utils.database import get_db
+                db = get_db()
+                db.execute("BEGIN IMMEDIATE")
+                try:
+                    db.execute(
+                        """
+                        UPDATE rotas_viagem
+                        SET status = 'cancelada'
+                        WHERE usuario_id = ? AND cartao_id = ? AND status = 'planejada'
+                        """,
+                        (cartao["usuario_id"], cartao["id"]),
+                    )
+                    rota_cursor = db.execute(
+                        """
+                        INSERT INTO rotas_viagem (usuario_id, cartao_id, criado_em, status)
+                        VALUES (?, ?, ?, 'planejada')
+                        """,
+                        (cartao["usuario_id"], cartao["id"], __import__("utils.helpers").helpers.agora_formatado()),
+                    )
+                    rota_id = rota_cursor.lastrowid
+                    valor = float(valor_passagem_atual())
+                    for indice, (origem, destino) in enumerate(trechos, start=1):
+                        db.execute(
+                            """
+                            INSERT INTO trechos_viagem (
+                                rota_id, origem_id, destino_id, ordem, valor
+                            )
+                            VALUES (?, ?, ?, ?, ?)
+                            """,
+                            (rota_id, origem, destino, indice, valor),
+                        )
+                    db.execute("COMMIT")
+                    flash("Viagem planejada com sucesso.")
+                    return redirect(url_for("usuario_minha_viagem", token=request.values.get("token", "")))
+                except Exception:
+                    db.execute("ROLLBACK")
+                    erro = "Nao foi possivel salvar a viagem."
+
+    return render_template(
+        "planejar_viagem.html",
+        cartao=cartao,
+        erro=erro,
+        estacoes=__import__("utils.queries").queries.estacoes_ativas(),
+        trechos=__import__("utils.helpers").helpers.trechos_preview(trechos),
+        trechos_serializados=codificar_trechos(trechos),
+        valor_passagem=valor_passagem_atual(),
+    )
+
+
+@app.get("/usuario/minha-viagem")
+@acesso_requerido("usuario")
+def usuario_minha_viagem():
+    cartao = cartao_do_usuario(__import__("flask").flask.g.acesso.get("usuario_id")) if __import__("flask").flask.g.acesso.get("usuario_id") else None
+    rota = None
+    trechos = []
+    if cartao:
+        rota = rota_planejada_ativa(cartao["usuario_id"], cartao["id"])
+        if rota:
+            trechos = trechos_da_rota(rota["id"])
+    return render_template("minha_viagem.html", cartao=cartao, rota=rota, trechos=trechos)
+
+
+@app.post("/usuario/minha-viagem/cancelar")
+@acesso_requerido("usuario")
+def usuario_cancelar_viagem():
+    cartao = cartao_do_usuario(__import__("flask").flask.g.acesso.get("usuario_id")) if __import__("flask").flask.g.acesso.get("usuario_id") else None
+    if not cartao:
+        flash("Nenhum cartao encontrado para este usuario.")
+    else:
+        __import__("utils.database").database.get_db().execute(
+            """
+            UPDATE rotas_viagem
+            SET status = 'cancelada'
+            WHERE usuario_id = ? AND cartao_id = ? AND status = 'planejada'
+            """,
+            (cartao["usuario_id"], cartao["id"]),
+        )
+        flash("Rota cancelada.")
+    return redirect(url_for("usuario_minha_viagem", token=request.values.get("token", "")))
+PY
+
+cat > routes/catraca.py <<'PY'
+from flask import redirect, render_template, request, url_for
+
+from app import app
+from utils.auth import acesso_requerido
+from utils.queries import estacao_catraca_atual
+from utils.config import valor_passagem_atual
+from utils.validation import validar_entrada_por_token_privado, validar_entrada
+
+
+@app.get("/catraca")
+@acesso_requerido("catraca")
+def catraca():
+    return render_template(
+        "catraca.html",
+        valor_passagem=valor_passagem_atual(),
+        estacao=estacao_catraca_atual(),
+    )
+
+
+@app.post("/validar-catraca")
+@app.post("/catraca/validar")
+@acesso_requerido("catraca")
+def validar_catraca():
+    token_privado = (request.form.get("cartao_id", "") or "").strip()
+    resultado = validar_entrada_por_token_privado(token_privado)
+    return render_template(
+        "catraca.html",
+        valor_passagem=valor_passagem_atual(),
+        resultado=resultado,
+        cartao_id=token_privado,
+        estacao=estacao_catraca_atual(),
+    )
+PY
+
+cat > routes/dispositivos.py <<'PY'
+from flask import flash, redirect, render_template, request, url_for
+
+from app import app
+from utils.auth import acesso_requerido
+from utils.config import TIPOS_DISPOSITIVO
+from utils.database import get_db
+from utils.helpers import gerar_token_acesso
+from utils.queries import estacoes_ativas
+from utils.queries import cartao_do_usuario
+from utils.queries import estacao_padrao_id
+
+
+@app.route("/dispositivos", methods=["GET", "POST"])
+@app.route("/admin/dispositivos", methods=["GET", "POST"])
+@acesso_requerido("admin")
+def dispositivos():
+    erro = None
+    dados_form = {
+        "nome_dispositivo": "",
+        "tipo": "catraca",
+        "cartao_id": "",
+        "estacao_id": str(estacao_padrao_id() or ""),
+    }
+
+    if request.method == "POST":
+        dados_form = {
+            "nome_dispositivo": request.form.get("nome_dispositivo", "").strip(),
+            "tipo": request.form.get("tipo", "").strip(),
+            "cartao_id": request.form.get("cartao_id", "").strip(),
+            "estacao_id": request.form.get("estacao_id", "").strip(),
+        }
+        if not dados_form["nome_dispositivo"]:
+            erro = "Informe o nome do dispositivo."
+        elif dados_form["tipo"] not in TIPOS_DISPOSITIVO:
+            erro = "Informe um tipo de dispositivo valido."
+
+        usuario_id = None
+        cartao_id = None
+        estacao_id = None
+        if not erro and dados_form["tipo"] == "usuario" and dados_form["cartao_id"]:
+            if not dados_form["cartao_id"].isdigit():
+                erro = "Informe um cartao valido."
+            else:
+                cartao = get_db().execute(
+                    "SELECT id, usuario_id FROM cartoes WHERE id = ?",
+                    (int(dados_form["cartao_id"]),),
+                ).fetchone()
+                if not cartao:
+                    erro = "O cartao informado nao existe."
+                else:
+                    usuario_id = cartao["usuario_id"]
+                    cartao_id = cartao["id"]
+        if not erro and dados_form["tipo"] == "catraca":
+            estacao_id = int(dados_form["estacao_id"]) if dados_form["estacao_id"].isdigit() else estacao_padrao_id()
+
+        if not erro:
+            try:
+                get_db().execute(
+                    """
+                    INSERT INTO dispositivos (
+                        nome_dispositivo, tipo, token_acesso, ativo,
+                        cartao_id, usuario_id, estacao_id
+                    )
+                    VALUES (?, ?, ?, 1, ?, ?, ?)
+                    """,
+                    (
+                        dados_form["nome_dispositivo"],
+                        dados_form["tipo"],
+                        gerar_token_acesso(),
+                        cartao_id,
+                        usuario_id,
+                        estacao_id,
+                    ),
+                )
+                flash("Dispositivo criado. O link de acesso ja esta disponivel.")
+                return redirect(url_for("dispositivos", token=request.values.get("token", "")))
+            except Exception:
+                erro = "Nao foi possivel criar o dispositivo."
+
+    db = get_db()
+    lista_dispositivos = db.execute(
+        """
+        SELECT
+            dispositivos.*,
+            cartoes.codigo_publico,
+            usuarios.nome AS nome_passageiro,
+            estacoes.nome AS estacao_nome
+        FROM dispositivos
+        LEFT JOIN cartoes ON cartoes.id = dispositivos.cartao_id
+        LEFT JOIN usuarios ON usuarios.id = dispositivos.usuario_id
+        LEFT JOIN estacoes ON estacoes.id = dispositivos.estacao_id
+        ORDER BY dispositivos.id
+        """
+    ).fetchall()
+    cartoes = db.execute(
+        """
+        SELECT cartoes.id, cartoes.codigo_publico, usuarios.nome AS nome_passageiro
+        FROM cartoes
+        JOIN usuarios ON usuarios.id = cartoes.usuario_id
+        ORDER BY usuarios.nome, cartoes.id
+        """
+    ).fetchall()
+    estacoes = estacoes_ativas()
+    links_acesso = {
+        dispositivo["id"]: url_for(
+            {
+                "admin": "admin_home",
+                "catraca": "catraca",
+                "usuario": "usuario_meu_cartao",
+            }[dispositivo["tipo"]],
+            token=dispositivo["token_acesso"],
+            _external=True,
+        )
+        for dispositivo in lista_dispositivos
+    }
+
+    return render_template(
+        "dispositivos.html",
+        lista_dispositivos=lista_dispositivos,
+        cartoes=cartoes,
+        estacoes=estacoes,
+        links_acesso=links_acesso,
+        erro=erro,
+        dados_form=dados_form,
+    )
+
+
+@app.post("/dispositivos/<int:dispositivo_id>/vincular")
+@acesso_requerido("admin")
+def vincular_dispositivo(dispositivo_id):
+    cartao_id_texto = request.form.get("cartao_id", "").strip()
+    estacao_id_texto = request.form.get("estacao_id", "").strip()
+    db = get_db()
+    dispositivo = db.execute("SELECT id, tipo FROM dispositivos WHERE id = ?", (dispositivo_id,)).fetchone()
+
+    if not dispositivo:
+        flash("Dispositivo nao encontrado.")
+    elif dispositivo["tipo"] == "usuario":
+        if not cartao_id_texto.isdigit():
+            flash("Informe um cartao valido.")
+        else:
+            cartao = db.execute(
+                "SELECT id, usuario_id FROM cartoes WHERE id = ?", (int(cartao_id_texto),)
+            ).fetchone()
+            if not cartao:
+                flash("O cartao informado nao existe.")
+            else:
+                db.execute(
+                    "UPDATE dispositivos SET cartao_id = ?, usuario_id = ? WHERE id = ?",
+                    (cartao["id"], cartao["usuario_id"], dispositivo_id),
+                )
+                flash("Usuario vinculado ao dispositivo.")
+    elif dispositivo["tipo"] == "catraca":
+        if not estacao_id_texto.isdigit():
+            flash("Informe uma estacao valida.")
+        else:
+            db.execute(
+                "UPDATE dispositivos SET estacao_id = ? WHERE id = ?",
+                (int(estacao_id_texto), dispositivo_id),
+            )
+            flash("Estacao da catraca atualizada.")
+
+    return redirect(url_for("dispositivos", token=request.values.get("token", "")))
+
+
+@app.post("/dispositivos/<int:dispositivo_id>/alternar")
+@acesso_requerido("admin")
+def alternar_dispositivo(dispositivo_id):
+    if dispositivo_id == __import__("flask").flask.g.acesso.get("id"):
+        flash("O dispositivo administrativo em uso nao pode ser desativado.")
+        return redirect(url_for("dispositivos", token=request.values.get("token", "")))
+
+    dispositivo = get_db().execute(
+        "SELECT id, ativo FROM dispositivos WHERE id = ?", (dispositivo_id,)
+    ).fetchone()
+    if not dispositivo:
+        flash("Dispositivo nao encontrado.")
+    else:
+        novo_status = 0 if dispositivo["ativo"] else 1
+        get_db().execute(
+            "UPDATE dispositivos SET ativo = ? WHERE id = ?",
+            (novo_status, dispositivo_id),
+        )
+        flash("Status do dispositivo atualizado.")
+
+    return redirect(url_for("dispositivos", token=request.values.get("token", "")))
+PY
+
+Verificando o estado atual dos arquivos e a criação parcial do módulo.
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca)
+
+Confirmando o conteúdo gerado e o arquivo principal antes de corrigir a refatoração final.
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/routes)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#1-1), lines 1 to 240
+
+Fez alterações.
+
+Optimized tool selectionVou abrir e analisar `app.py` para planejar a divisão em módulos. Em seguida criarei os arquivos de módulos e atualizarei `app.py`.
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#1-1), lines 1 to 400
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#400-400), lines 400 to 800
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#800-800), lines 800 to 1200
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#1200-1200), lines 1200 to 1600
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#1600-1600), lines 1600 to 2000
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#2000-2000), lines 2000 to 2103
+
+Agora vou criar o plano de trabalho (TODOs) antes de aplicar as mudanças. Em seguida farei as edições.
+
+4 tarefas pendentes criadas
+
+Vou criar os novos módulos (`config.py`, `database.py`, `helpers.py`, `auth.py`, `pdf_utils.py`) e atualizar app.py para usar esses módulos. Isso reduz mudanças nos handlers de rota por agora. Vou aplicar as alterações agora.
+
+Generating patch (66 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/config.py)
+
+Generating patch (22 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/database.py)
+
+
+```
+
+```
+
+
+Generating patch (65 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/helpers.py)
+
+
+```
+
+```
+
+
+Generating patch (160 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/auth.py)
+
+
+```
+
+```
+
+
+Generating patch (79 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/pdf_utils.py)
+
+
+```
+
+```
+
+
+Generating patch (43 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py)
+
+
+```
+
+```
+Vou varrer app.py em busca de referências restantes às funções/constantes movidas e completar a refatoração. Em seguida atualizo onde necessário. Vou executar leituras e aplicar patches.
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#1-1), lines 1 to 120
+
+Vou corrigir `pdf_utils.py` para não depender de `status_cartao_filter` e torná-lo independente. Em seguida atualizo app.py para remover duplicatas e usar arquivos de configuração. Vou aplicar os patches.
+
+Generating patch (18 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/pdf_utils.py)
+
+
+```
+
+```
+
+
+Generating patch (155 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py)
+
+
+```
+
+```
+
+
+Searched for text `BASE_DIR` (`Blonde` · `Protótipos/Catraca/**`), 20 results
+
+Searched for text `def gerar_token_usuario` (`Blonde` · `Protótipos/Catraca/**`), 3 results
+
+Searched for text `gerar_token_usuario` (`Blonde` · `Protótipos/Catraca/app.py`), 4 results
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#60-60), lines 60 to 120
+
+Generating patch (63 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py)
+
+
+```
+
+```
+
+
+Searched for regex `secrets|string|ROUND_HALF_UP|InvalidOperation` (`Blonde` · `Protótipos/Catraca/**`), 20 results
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/__init__.py)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/config.py)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/auth.py)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/helpers.py)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/pdf.py)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/utils/database.py)
+
+Vou remover os módulos que criei por engano e atualizar app.py para usar os módulos em `utils/`. Aplicando as alterações agora.
+
+Generating patch (59 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py)
+
+
+```
+
+```
+
+
+Searched for text `def trechos_preview` (`Blonde` · `Protótipos/Catraca/**`), 1 result
+
+Generating patch (17 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py)
+
+
+```
+
+```
+
+
+Generating patch (3 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/config.py)
+
+Generating patch (3 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/database.py)
+
+Generating patch (3 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/helpers.py)
+
+Generating patch (3 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/auth.py)
+
+Generating patch (3 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/pdf_utils.py)
+
+Searched for regex `from .config|from .database|from .helpers|from .auth|from .pdf_utils` (`Blonde` · `Protótipos/Catraca/**`), 20 results
+
+Searched for regex `def extrair_codigo_publico|def decodificar_trechos|def codificar_trechos|def valores_recarga_padrao|def endpoint_do_dispositivo|def status_cartao_filter` (`Blonde` · `Protótipos/Catraca/app.py`), 6 results
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#520-520), lines 520 to 560
+
+Searched for regex `def buscar_acesso_por_credenciais|def acesso_requerido|def token_da_requisicao|def buscar_acesso` (`Blonde` · `Protótipos/Catraca/app.py`), 4 results
+
+Generating patch (68 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py)
+
+
+```
+
+```
+
+
+Generating patch (59 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py)
+
+
+```
+
+```
+
+
+Generating patch (41 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py)
+
+
+```
+
+```
+
+
+Generating patch (34 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py)
+
+
+```
+
+```
+
+
+Searched for text `@app.template_filter` (`Blonde` · `Protótipos/Catraca/app.py`), 1 result
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#650-650), lines 650 to 700
+
+Generating patch (12 lines) in [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py)
+
+
+```
+
+```
+
+
+Iniciando: *Mover rotas para módulos separados (admin, usuario, dispositivos, catraca, main)* (2/4)
+
+Concluí a refatoração parcial e limpei duplicações — próximo passo é mover as rotas para módulos.
+
+- **Feito:**  
+  - Usei os módulos existentes em `utils/` (`utils.config`, `utils.database`, `utils.helpers`, `utils.auth`, `utils.pdf`).  
+  - Atualizei app.py para importar dessas bibliotecas, registrar `close_db` como teardown e registrar o filtro de template `status_cartao`.  
+  - Removi os módulos duplicados que criei por engano e eliminei definições duplicadas em app.py.  
+  - Atualizei a lista de TODOs: marquei a preparação de módulos como concluída e comecei a etapa de mover rotas.
+
+- **Próximo:** mover grupos de rotas para arquivos separados (ex.: `routes/admin.py`, `routes/usuario.py`, `routes/dispositivos.py`, `routes/catraca.py`) e registrar Blueprints em app.py.
+
+Quer que eu prossiga com a divisão das rotas em Blueprints agora?
+
+Fez alterações.
+
+Vou atualizar a lista de tarefas e depois ler `app.py` para localizar onde registrar os Blueprints.
+
+Lista de tarefas pendentes atualizada
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#1-1), lines 1 to 240
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#241-241), lines 241 to 480
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#481-481), lines 481 to 960
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/routes/__init__.py)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/routes/admin.py)
+
+Searched for text `routes` (`**/Protótipos/Catraca/**`), 20 results
+
+Searched for text `from routes` (`**/Protótipos/Catraca/**`), no results
+
+Searched for text `@app.get("/admin")` (`**/Protótipos/Catraca/app.py`), 1 result
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#688-688), lines 688 to 920
+
+Searched for text `def admin_configuracoes` (`**/Protótipos/Catraca/app.py`), 1 result
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#1600-1600), lines 1600 to 1720
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/routes/dispositivos.py)
+
+Posso agora converter as rotas para Blueprints e registrá-las automaticamente no app.py? Isso modificará vários arquivos.
+
+Fez uma pergunta (Confirmar ação)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/routes/usuario.py)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/routes/catraca.py)
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/routes/main.py)
+
+Searched for text `@app.` (`**/Protótipos/Catraca/app.py`), 20 results
+
+Searched for text `def cartao_usuario_atual_ou_erro` (`**/Protótipos/Catraca/app.py`), 1 result
+
+Read [](file:///workspaces/Blonde/Prot%C3%B3tipos/Catraca/app.py#652-652), lines 652 to 920
+
+Atualizei a lista de tarefas. Quer que eu converta os arquivos em `routes/` para Blueprints e registre-os automaticamente no app.py agora? (essa mudança editará múltiplos arquivos)
+
+Vou adicionar os imports dos módulos em `routes/` no final de app.py e remover as definições de rotas duplicadas já movidas para `routes/`. Em seguida atualizo a lista de tarefas. Vou aplicar o patch agora.
+
+Aplicar Patch
+
+estrutura atual: 
+.
+├── README.md
+├── __pycache__
+│   └── app.cpython-312.pyc
+├── app.py
+├── database.db
+├── modules.txt
+├── requirements.txt
+├── routes
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── catraca.py
+│   ├── dispositivos.py
+│   ├── main.py
+│   └── usuario.py
+├── static
+│   ├── html5-qrcode.min.js
+│   ├── script.js
+│   └── style.css
+├── templates
+│   ├── acesso_negado.html
+│   ├── admin_cartoes.html
+│   ├── admin_configuracoes.html
+│   ├── admin_estacoes.html
+│   ├── admin_recargas.html
+│   ├── base.html
+│   ├── catraca.html
+│   ├── criar_cartao.html
+│   ├── dispositivos.html
+│   ├── historico.html
+│   ├── index.html
+│   ├── login.html
+│   ├── meu_cartao.html
+│   ├── minha_viagem.html
+│   ├── planejar_viagem.html
+│   ├── recarregar_cartao.html
+│   ├── resultado.html
+│   ├── usuario_recargas.html
+│   └── visualizar_cartao.html
+├── utils
+│   ├── __init__.py
+│   ├── auth.py
+│   ├── config.py
+│   ├── database.py
+│   ├── helpers.py
+│   ├── migrate.py
+│   ├── pdf.py
+│   ├── queries.py
+│   └── validation.py
+└── venv
+    ├── bin
+    │   ├── Activate.ps1
+    │   ├── activate
+    │   ├── activate.csh
+    │   ├── activate.fish
+    │   ├── flask
+    │   ├── normalizer
+    │   ├── pip
+    │   ├── pip3
+    │   ├── pip3.12
+    │   ├── python -> python3
+    │   ├── python3 -> /home/codespace/.python/current/bin/python3
+    │   └── python3.12 -> python3
+    ├── include
+    │   └── python3.12
+    ├── lib
+    │   └── python3.12
+    ├── lib64 -> lib
+    └── pyvenv.cfg
